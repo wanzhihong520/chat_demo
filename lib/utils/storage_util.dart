@@ -21,7 +21,7 @@ class SPUtil {
     await StorageManage.getUserId();
     await StorageManage.getUserSig();
     await StorageManage.getMeModel();
-    await StorageManage.getFriendsList();
+    await StorageManage.getChatList();
   }
 
   // ========== 定义存储的key（统一管理，避免拼写错误） ==========
@@ -29,7 +29,7 @@ class SPUtil {
   static const String KEY_USER_ID = "user_id";
   static const String KEY_USER_SIG = "user_sig";
   static const String KEY_ME_MODEL = "me_model";
-  static const String KEY_FRIENDS_LIST = "friends_list";
+  static const String KEY_CHAT_LIST = "chat_list";
 
   // ========== 封装常用方法 ==========
   // 保存字符串

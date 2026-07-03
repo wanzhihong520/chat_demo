@@ -1,92 +1,62 @@
 import 'package:chat_demo/import.dart';
 
+class PopupMenuItemModel {
+  final String icon;
+  final String text;
+  final VoidCallback? onTap;
+
+  const PopupMenuItemModel({
+    required this.icon,
+    required this.text,
+    this.onTap,
+  });
+}
+
 class PopupmenuUtil extends StatelessWidget {
-  const PopupmenuUtil({super.key});
+  final Widget icon;
+  final List<PopupMenuItemModel> items;
+  final Offset offset;
+  final Color color;
+
+  const PopupmenuUtil({
+    super.key,
+    required this.icon,
+    required this.items,
+    this.offset = const Offset(0, 50),
+    this.color = const Color.fromRGBO(30, 30, 30, 1),
+  });
 
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton(
-      icon: SvgPicture.asset('assets/images/add.svg', width: 28, height: 28),
-      offset: Offset(0, 50),
-      color: Color.fromRGBO(30, 30, 30, 1),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          child: Row(
-            children: [
-              SvgPicture.asset(
-                'assets/images/chat.svg',
-                width: 24,
-                height: 24,
-                colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+      icon: icon,
+      offset: offset,
+      color: color,
+      itemBuilder: (context) => items
+          .map(
+            (item) => PopupMenuItem(
+              onTap: item.onTap,
+              child: Row(
+                children: [
+                  SvgPicture.asset(
+                    item.icon,
+                    width: 24,
+                    height: 24,
+                    colorFilter: ColorFilter.mode(
+                      Colors.white,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    item.text,
+                    style: FontStyleUtils.whiteTitle,
+                  ).withPadding(padding: [0, 4, 0, 0]),
+                ],
               ),
-              SizedBox(width: 12),
-              Text(
-                '发起群聊',
-                style: FontStyleUtils.whiteTitle,
-              ).withPadding(padding: [0, 4, 0, 0]),
-            ],
-          ),
-          onTap: () {},
-        ),
-        PopupMenuItem(
-          child: Row(
-            children: [
-              SvgPicture.asset(
-                'assets/images/add_friend.svg',
-                width: 24,
-                height: 24,
-                colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-              ),
-              SizedBox(width: 12),
-              Text(
-                '添加好友',
-                style: FontStyleUtils.whiteTitle,
-              ).withPadding(padding: [0, 4, 0, 0]),
-            ],
-          ),
-          onTap: () {},
-        ),
-        PopupMenuItem(
-          child: Row(
-            children: [
-              SvgPicture.asset(
-                'assets/images/scan.svg',
-                width: 24,
-                height: 24,
-                colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-              ),
-              SizedBox(width: 12),
-              Text(
-                '扫一扫',
-                style: FontStyleUtils.whiteTitle,
-              ).withPadding(padding: [0, 4, 0, 0]),
-            ],
-          ),
-          onTap: () {
-            showToast("当前功能暂未开放");
-          },
-        ),
-        PopupMenuItem(
-          child: Row(
-            children: [
-              SvgPicture.asset(
-                'assets/images/qr_code.svg',
-                width: 24,
-                height: 24,
-                colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-              ),
-              SizedBox(width: 12),
-              Text(
-                '收款码',
-                style: FontStyleUtils.whiteTitle,
-              ).withPadding(padding: [0, 4, 0, 0]),
-            ],
-          ),
-          onTap: () {
-            showToast("当前功能暂未开放");
-          },
-        ),
-      ],
+            ),
+          )
+          .toList(),
     );
   }
 }

@@ -6,9 +6,12 @@
 
 #include "generated_plugin_registrant.h"
 
+#include <file_selector_windows/file_selector_windows.h>
 #include <tencent_cloud_chat_sdk/tencent_cloud_chat_sdk_plugin_c_api.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
+  FileSelectorWindowsRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FileSelectorWindows"));
   TencentCloudChatSdkPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("TencentCloudChatSdkPluginCApi"));
 }

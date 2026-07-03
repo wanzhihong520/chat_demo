@@ -8,7 +8,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<FriendModel> get _friends => UserPro.friendsList;
+  List<ChatModel> get _chatList => UserPro.chatList;
 
   @override
   Widget build(BuildContext context) {
@@ -16,28 +16,53 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: Text('聊天'),
         actions: [
-          PopupmenuUtil(),
+          PopupmenuUtil(
+            icon: SvgPicture.asset(
+              'assets/images/add.svg',
+              width: 28,
+              height: 28,
+            ),
+            items: [
+              PopupMenuItemModel(
+                icon: 'assets/images/chat.svg',
+                text: '发起群聊',
+              ),
+              PopupMenuItemModel(
+                icon: 'assets/images/add_friend.svg',
+                text: '添加好友',
+              ),
+              PopupMenuItemModel(
+                icon: 'assets/images/scan.svg',
+                text: '扫一扫',
+                onTap: () => showToast('当前功能暂未开放'),
+              ),
+              PopupMenuItemModel(
+                icon: 'assets/images/qr_code.svg',
+                text: '收款码',
+                onTap: () => showToast('当前功能暂未开放'),
+              ),
+            ],
+          ),
         ],
       ),
-      body: _friends.isEmpty
-          ? Center(child: Text('暂无好友', style: FontStyleUtils.blackBody))
+      body: _chatList.isEmpty
+          ? Center(child: Text('暂无会话', style: FontStyleUtils.blackBody))
           : ListView.builder(
-              itemCount: _friends.length,
+              itemCount: _chatList.length,
               itemBuilder: (context, index) {
-                final friend = _friends[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: friend.avatarUrl.isNotEmpty
-                        ? NetworkImage(friend.avatarUrl)
-                        : null,
-                    child: friend.avatarUrl.isEmpty
-                        ? Text(friend.nickname.isNotEmpty
-                            ? friend.nickname[0]
-                            : '?')
-                        : null,
-                  ),
-                  title: Text(friend.nickname),
-                  subtitle: friend.isAi ? Text('AI') : null,
+                final chat = _chatList[index];
+                return ChatItemUtil(
+                  chat: chat,
+                  onTap: () {
+                    if (chat.isAi) {
+                      jumpPage(
+                        context,
+                        AichatDetailPage(aiId: chat.aiId),
+                      );
+                    } else {
+                      jumpPage(context, ChatDetailPage());
+                    }
+                  },
                 );
               },
             ),

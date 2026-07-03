@@ -5,5 +5,5 @@ class UserPro {
   static String userId = '';
   static String userSig = '';
   static MeModel? meModel;
-  static List<FriendModel> friendsList = [];
+  static List<ChatModel> chatList = [];
 }

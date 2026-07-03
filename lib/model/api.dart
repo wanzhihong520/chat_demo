@@ -97,6 +97,41 @@ class Api {
     return response;
   }
 
+  /// 流式 post（SSE）
+  Future<Response> postStream(
+    String url, {
+    dynamic data,
+    CancelToken? cancelToken,
+  }) async {
+    return await _dio.post(
+      url,
+      data: data ?? {},
+      options: Options(
+        responseType: ResponseType.stream,
+        headers: {'Accept': 'text/event-stream'},
+        receiveTimeout: const Duration(seconds: 120),
+      ),
+      cancelToken: cancelToken,
+    );
+  }
+
+  /// patch 请求
+  Future<Response> patch(
+    String url, {
+    dynamic data,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    var requestOptions = options ?? Options();
+    Response response = await _dio.patch(
+      url,
+      data: data ?? {},
+      options: requestOptions,
+      cancelToken: cancelToken,
+    );
+    return response;
+  }
+
   /// put 请求
   Future<Response> put(
     String url, {

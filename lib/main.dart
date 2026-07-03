@@ -22,6 +22,12 @@ class MyApp extends StatelessWidget {
             backgroundColor: Color.fromRGBO(230, 230, 230, 1),
             elevation: 0,
             centerTitle: true,
+            shape: Border(bottom: BorderSide(color: Colors.grey, width: 0.5)),
+          ),
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: Colors.black,
+            selectionColor: Colors.green.withValues(alpha: 0.2),
+            selectionHandleColor: Colors.green,
           ),
           splashFactory: NoSplash.splashFactory,
           splashColor: Colors.transparent,

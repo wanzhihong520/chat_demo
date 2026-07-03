@@ -62,24 +62,24 @@ class StorageManage {
     return UserPro.meModel;
   }
 
-  /// 设置好友列表
-  static Future<void> setFriendsList(List<FriendModel> value) async {
-    UserPro.friendsList = value;
+  /// 设置聊天列表
+  static Future<void> setChatList(List<ChatModel> value) async {
+    UserPro.chatList = value;
     final sp = await SPUtil.getInstance();
-    final model = FriendsListModel(list: value);
-    await sp.setString(SPUtil.KEY_FRIENDS_LIST, jsonEncode(model.toJson()));
+    final model = ChatListModel(list: value);
+    await sp.setString(SPUtil.KEY_CHAT_LIST, jsonEncode(model.toJson()));
   }
 
-  /// 获取好友列表
-  static Future<List<FriendModel>> getFriendsList() async {
+  /// 获取聊天列表
+  static Future<List<ChatModel>> getChatList() async {
     final sp = await SPUtil.getInstance();
-    final json = sp.getString(SPUtil.KEY_FRIENDS_LIST);
+    final json = sp.getString(SPUtil.KEY_CHAT_LIST);
     if (json.isEmpty) {
-      UserPro.friendsList = [];
+      UserPro.chatList = [];
       return [];
     }
-    UserPro.friendsList =
-        FriendsListModel.fromJson(jsonDecode(json) as Map<String, dynamic>).list;
-    return UserPro.friendsList;
+    UserPro.chatList =
+        ChatListModel.fromJson(jsonDecode(json) as Map<String, dynamic>).list;
+    return UserPro.chatList;
   }
 }
