@@ -1,5 +1,4 @@
 import 'package:chat_demo/import.dart';
-import 'package:chat_demo/page/startUp_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,16 +15,24 @@ class MyApp extends StatelessWidget {
     return OKToast(
       position: ToastPosition.bottom,
       child: MaterialApp(
+        locale: Locale('zh', 'CN'),
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        supportedLocales: [
+          Locale('zh', 'CN'),
+          Locale('en', 'US'),
+        ],
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
+          scaffoldBackgroundColor: Color.fromRGBO(244, 244, 244, 1),
           appBarTheme: AppBarTheme(
             backgroundColor: Color.fromRGBO(230, 230, 230, 1),
             elevation: 0,
             centerTitle: true,
+            titleTextStyle: FontStyleUtils.blackTitle,
             shape: Border(bottom: BorderSide(color: Colors.grey, width: 0.5)),
           ),
           textSelectionTheme: TextSelectionThemeData(
-            cursorColor: Colors.black,
+            cursorColor: Colors.green,
             selectionColor: Colors.green.withValues(alpha: 0.2),
             selectionHandleColor: Colors.green,
           ),

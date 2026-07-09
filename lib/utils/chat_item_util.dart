@@ -1,17 +1,29 @@
 import 'package:chat_demo/import.dart';
 
 class ChatItemUtil extends StatefulWidget {
-  static const Color selectedColor = Color.fromRGBO(220, 220, 220, 1);
+  static const Color selectedColor = Colors.white;
   static const Color aiColor = Color.fromRGBO(230, 230, 230, 1);
   static const Color normalColor = Colors.white;
 
-  final ChatModel chat;
-  final VoidCallback onTap;
+  final String? name;
+  final String? description;
+  final String? avatarUrl;
+  final String? asset;
+  final Color? boxColor;
+  final String? timeText;
+  final bool isAi;
+  final VoidCallback? onTap;
 
   const ChatItemUtil({
     super.key,
-    required this.chat,
-    required this.onTap,
+    this.name,
+    this.description,
+    this.avatarUrl,
+    this.asset,
+    this.boxColor,
+    this.timeText,
+    this.isAi = false,
+    this.onTap,
   });
 
   @override
@@ -21,81 +33,63 @@ class ChatItemUtil extends StatefulWidget {
 class _ChatItemUtilState extends State<ChatItemUtil> {
   bool _highlighted = false;
 
-  Color get _backgroundColor {
-    if (_highlighted) return ChatItemUtil.selectedColor;
-    return widget.chat.isAi ? ChatItemUtil.aiColor : ChatItemUtil.normalColor;
-  }
-
-  void _setHighlighted(bool value) {
-    if (_highlighted == value) return;
-    setState(() {
-      _highlighted = value;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    final description = widget.description ?? '';
+    final timeText = widget.timeText ?? '';
+    final url = widget.avatarUrl ?? '';
+    final fullUrl = url.isEmpty
+        ? ''
+        : (url.startsWith('http') ? url : BASE_URL + url);
+
     return GestureDetector(
-      onTapDown: (_) => _setHighlighted(true),
-      onTapUp: (_) => _setHighlighted(false),
-      onTapCancel: () => _setHighlighted(false),
-      onLongPressEnd: (_) => _setHighlighted(false),
+      onTapDown: (_) => setState(() => _highlighted = true),
+      onTapUp: (_) => setState(() => _highlighted = false),
+      onTapCancel: () => setState(() => _highlighted = false),
       onTap: () {
-        _setHighlighted(false);
-        widget.onTap();
+        setState(() => _highlighted = false);
+        widget.onTap?.call();
       },
       child: Container(
-        color: _backgroundColor,
-        padding: EdgeInsets.only(left: 16, top: 12, bottom: 0),
+        color: _highlighted
+            ? ChatItemUtil.selectedColor
+            : widget.isAi
+            ? ChatItemUtil.aiColor
+            : ChatItemUtil.normalColor,
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 12),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PortraitUtil(
-              url: BASE_URL + widget.chat.avatarUrl,
-              radius: 4,
-              width: 48,
-              height: 48,
-            ),
+            if (widget.asset != null && widget.asset!.isNotEmpty)
+              PortraitUtil(
+                width: 40,
+                height: 40,
+                padding: 8,
+                asset: widget.asset,
+                boxColor: widget.boxColor ?? Colors.white,
+              )
+            else if (fullUrl.isNotEmpty)
+              PortraitUtil(url: fullUrl, width: 48, height: 48),
+            SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: EdgeInsets.only(left: 12, right: 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.chat.name,
-                                style: FontStyleUtils.blackTitle,
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                widget.chat.description,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: FontStyleUtils.blackBody,
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (widget.chat.timeText.isNotEmpty)
-                          Text(
-                            widget.chat.timeText,
-                            style: FontStyleUtils.blackBody,
-                          ),
-                      ],
+                  Text(widget.name ?? '', style: FontStyleUtils.blackTitle),
+                  if (description.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Text(
+                        description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: FontStyleUtils.blackBody,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 12),
-                  Divider(height: 0.5, thickness: 0.5, color: Colors.grey),
                 ],
               ),
             ),
+            if (timeText.isNotEmpty)
+              Text(timeText, style: FontStyleUtils.blackBody),
           ],
         ),
       ),

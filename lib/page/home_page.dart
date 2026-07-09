@@ -23,13 +23,11 @@ class _HomePageState extends State<HomePage> {
               height: 28,
             ),
             items: [
-              PopupMenuItemModel(
-                icon: 'assets/images/chat.svg',
-                text: '发起群聊',
-              ),
+              PopupMenuItemModel(icon: 'assets/images/chat.svg', text: '发起群聊'),
               PopupMenuItemModel(
                 icon: 'assets/images/add_friend.svg',
                 text: '添加好友',
+                onTap: () => jumpPage(context, SearchPage()),
               ),
               PopupMenuItemModel(
                 icon: 'assets/images/scan.svg',
@@ -47,20 +45,23 @@ class _HomePageState extends State<HomePage> {
       ),
       body: _chatList.isEmpty
           ? Center(child: Text('暂无会话', style: FontStyleUtils.blackBody))
-          : ListView.builder(
+          : ListView.separated(
+              separatorBuilder: (context, index) =>
+                  Divider(height: 0.5, color: Colors.grey[400]),
               itemCount: _chatList.length,
               itemBuilder: (context, index) {
                 final chat = _chatList[index];
                 return ChatItemUtil(
-                  chat: chat,
+                  name: chat.name,
+                  description: chat.description,
+                  avatarUrl: chat.avatarUrl,
+                  timeText: chat.timeText,
+                  isAi: chat.isAi,
                   onTap: () {
                     if (chat.isAi) {
-                      jumpPage(
-                        context,
-                        AichatDetailPage(aiId: chat.aiId),
-                      );
+                      jumpPage(context, AichatDetailPage(aiId: chat.aiId));
                     } else {
-                      jumpPage(context, ChatDetailPage());
+                      jumpPage(context, ChatDetailPage(receiver: chat.id));
                     }
                   },
                 );

@@ -1,38 +1,28 @@
-class MeModel {
+class SearchModel {
   final String id;
   final String username;
   final String nickname;
   final String avatarUrl;
   final String imUserId;
-  final String gender;
+  final bool isFriend;
 
-  MeModel({
+  SearchModel({
     required this.id,
     required this.username,
     required this.nickname,
     required this.avatarUrl,
     required this.imUserId,
-    required this.gender,
+    required this.isFriend,
   });
 
-  factory MeModel.fromJson(Map<String, dynamic> json) {
-    return MeModel(
+  factory SearchModel.fromJson(Map<String, dynamic> json) {
+    return SearchModel(
       id: json['id'] ?? '',
       username: json['username'] ?? '',
       nickname: json['nickname'] ?? '',
       avatarUrl: json['avatarUrl'] ?? '',
       imUserId: json['imUserId'] ?? '',
-      gender: json['gender'] ?? '男',
+      isFriend: json['isFriend'] ?? false,
     );
-  }
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'username': username,
-      'nickname': nickname,
-      'avatarUrl': avatarUrl,
-      'imUserId': imUserId,
-      'gender': gender,
-    };
   }
 }

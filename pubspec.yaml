@@ -42,7 +42,13 @@ dependencies:
   provider: ^6.1.5+1
   flutter_svg: ^2.3.0
   image_picker: ^1.2.3
-
+  azlistview: ^2.0.0
+  lpinyin: ^2.0.3
+  wechat_assets_picker: ^10.1.2
+  flutter_localizations:
+    sdk: flutter  
+  flutter_image_compress: ^2.4.0
+  image_cropper: ^12.2.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -28,6 +28,7 @@ class ChatInputBar extends StatelessWidget {
         color: Color.fromRGBO(247, 247, 247, 1),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           SvgPicture.asset(
             "assets/images/voice.svg",
@@ -36,8 +37,8 @@ class ChatInputBar extends StatelessWidget {
           ).withOnTap(() => showToast('当前功能暂未开发')),
           Expanded(
             child: Container(
-              height: 36,
-              padding: EdgeInsets.symmetric(horizontal: 12),
+              constraints: BoxConstraints(minHeight: 36),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(4),
@@ -47,6 +48,8 @@ class ChatInputBar extends StatelessWidget {
                 focusNode: focusNode,
                 controller: controller,
                 hintText: '请输入内容',
+                minLines: 1,
+                maxLines: 5,
               ),
             ).withPadding(padding: [12, 12, 4, 4]),
           ),

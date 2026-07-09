@@ -45,14 +45,15 @@ class _LoginPageState extends State<LoginPage> {
         showToast('登录失败');
       }
     } else {
-      showToast(data['message']??'登录失败');
+      showToast(data['message'] ?? '登录失败');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(centerTitle: true, title: Text('登录')),
+      backgroundColor: Color.fromRGBO(230, 230, 230, 1),
+      appBar: AppBar(centerTitle: true, title: Text('登录'), shape: Border()),
       body: ListView(
         padding: EdgeInsets.all(16),
         children: [

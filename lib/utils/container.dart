@@ -1,8 +1,8 @@
 import 'package:chat_demo/import.dart';
 
 class ContainerUtils extends StatelessWidget {
-  final double width;
-  final double height;
+  final double? width;
+  final double? height;
   final Color color;
   final double radius;
   final String image;
@@ -11,8 +11,8 @@ class ContainerUtils extends StatelessWidget {
   final List<double> padding;
   const ContainerUtils({
     super.key,
-    this.width = 100,
-    this.height = 100,
+    this.width,
+    this.height,
     this.color = Colors.white,
     this.radius = 0,
     this.padding = const [0, 0, 0, 0],
@@ -25,15 +25,17 @@ class ContainerUtils extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       alignment: alignment,
-      padding: EdgeInsets.fromLTRB(padding[0], padding[1], padding[2], padding[3]),
+      padding: EdgeInsets.only(
+        left: padding[0],
+        right: padding[1],
+        top: padding[2],
+        bottom: padding[3],
+      ),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(radius),
         image: image.isNotEmpty
-            ? DecorationImage(
-                image: AssetImage(image),
-                fit: BoxFit.cover,
-              )
+            ? DecorationImage(image: AssetImage(image), fit: BoxFit.cover)
             : null,
       ),
       width: width,

@@ -6,8 +6,8 @@ void jumpPage(BuildContext context, Widget page) {
 }
 
 //返回页面
-void backPage(BuildContext context) {
-  Navigator.pop(context);
+void backPage(BuildContext context, [Object? result]) {
+  Navigator.pop(context, result);
 }
 
 //跳转页面并移除当前页面

@@ -16,6 +16,7 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
   List<AiMessageModel> _messages = [];
   AiSessionModel? _currentSession;
   bool _sending = false;
+  bool _isMore = false;
   bool _isVoiceMode = false;
   final _focusNode = FocusNode();
 
@@ -43,7 +44,10 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
   void _toggleVoiceMode() {
     setState(() {
       _isVoiceMode = !_isVoiceMode;
-      if (_isVoiceMode) _focusNode.unfocus();
+      if (_isVoiceMode) {
+        _isMore = false;
+        _focusNode.unfocus();
+      }
     });
     if (!_isVoiceMode) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -113,11 +117,11 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => backPage(context),
             child: Text('取消', style: FontStyleUtils.blackBody),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            onPressed: () => backPage(context, controller.text.trim()),
             child: Text('确定', style: FontStyleUtils.blackBody),
           ),
         ],
@@ -261,7 +265,7 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
                 ? Text(session.timeText)
                 : null,
             onTap: () {
-              Navigator.pop(context);
+              backPage(context);
               _selectSession(session);
             },
           );
@@ -271,6 +275,26 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
   }
 
   String get _title => _currentSession?.name ?? '';
+
+  Widget _buildMoreItem({required String icon, required String text}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: EdgeInsets.all(14),
+          child: SvgPicture.asset(icon),
+        ),
+        SizedBox(height: 4),
+        Text(text, style: FontStyleUtils.blackBody),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -340,11 +364,11 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
                               ),
                               decoration: BoxDecoration(
                                 color: message.isUser
-                                    ? Color.fromRGBO(220, 220, 220, 1)
+                                    ? Colors.green
                                     : Colors.white,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Text(
+                              child: SelectableText(
                                 message.content,
                                 style: FontStyleUtils.blackBody,
                               ),
@@ -364,6 +388,7 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
                       color: Color.fromRGBO(247, 247, 247, 1),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         SvgPicture.asset(
                           _isVoiceMode
@@ -374,8 +399,11 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
                         ).withOnTap(_toggleVoiceMode),
                         Expanded(
                           child: Container(
-                            height: 36,
-                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            constraints: BoxConstraints(minHeight: 36),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(4),
@@ -383,8 +411,7 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
                             child: _isVoiceMode
                                 ? GestureDetector(
                                     behavior: HitTestBehavior.opaque,
-                                    onTap: () =>
-                                        showToast('当前功能暂未开发'),
+                                    onTap: () => showToast('当前功能暂未开发'),
                                     child: Center(
                                       child: Text(
                                         '按住说话',
@@ -393,6 +420,10 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
                                     ),
                                   )
                                 : TextFieldUtils(
+                                    minLines: 1,
+                                    maxLines: 5,
+                                    onTap: () =>
+                                        setState(() => _isMore = false),
                                     focusNode: _focusNode,
                                     controller: _inputController,
                                     hintText: '请输入内容',
@@ -404,9 +435,12 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
                                 "assets/images/add.svg",
                                 width: 28,
                                 height: 28,
-                              ).withOnTap(
-                                () => showToast('当前功能暂未开发'),
-                              )
+                              ).withOnTap(() {
+                                setState(() {
+                                  _isMore = !_isMore;
+                                  if (_isMore) _focusNode.unfocus();
+                                });
+                              })
                             : ContainerUtils(
                                 width: 54,
                                 height: 32,
@@ -420,6 +454,37 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
                       ],
                     ),
                   ),
+                  if (_isMore)
+                    Container(
+                      padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      color: Color.fromRGBO(247, 247, 247, 1),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 8,
+                          childAspectRatio: 1,
+                        ),
+                        itemCount: 8,
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return _buildMoreItem(
+                              icon: 'assets/images/photo.svg',
+                              text: '相册',
+                            ).withOnTap(() => showToast('当前功能暂未开发'));
+                          }
+                          if (index == 1) {
+                            return _buildMoreItem(
+                              icon: 'assets/images/video.svg',
+                              text: '拍摄',
+                            ).withOnTap(() => showToast('当前功能暂未开发'));
+                          }
+                          return SizedBox.shrink();
+                        },
+                      ),
+                    ),
                 ],
               ),
             ],

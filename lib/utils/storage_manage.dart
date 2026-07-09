@@ -82,4 +82,25 @@ class StorageManage {
         ChatListModel.fromJson(jsonDecode(json) as Map<String, dynamic>).list;
     return UserPro.chatList;
   }
+
+  /// 设置好友列表
+  static Future<void> setFriendList(List<FriendModel> value) async {
+    UserPro.friendList = value;
+    final sp = await SPUtil.getInstance();
+    final model = FriendListModel(list: value);
+    await sp.setString(SPUtil.KEY_FRIEND_LIST, jsonEncode(model.toJson()));
+  }
+
+  /// 获取好友列表
+  static Future<List<FriendModel>> getFriendList() async {
+    final sp = await SPUtil.getInstance();
+    final json = sp.getString(SPUtil.KEY_FRIEND_LIST);
+    if (json.isEmpty) {
+      UserPro.friendList = [];
+      return [];
+    }
+    UserPro.friendList =
+        FriendListModel.fromJson(jsonDecode(json) as Map<String, dynamic>).list;
+    return UserPro.friendList;
+  }
 }

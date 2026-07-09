@@ -19,6 +19,7 @@ class _AppPageState extends State<AppPage> {
   Future<void> _initData() async {
     await _getMeData();
     await _getChatList();
+    await _getFriendList();
     if (mounted) setState(() {});
   }
 
@@ -26,7 +27,7 @@ class _AppPageState extends State<AppPage> {
   Future<void> _getMeData() async {
     final data = await Api().get("/api/auth/me");
     if (data.statusCode == 200) {
-      final MeModel meModel = MeModel.fromJson(data.data);
+      final MeModel meModel = MeModel.fromJson(data.data['data']);
       await StorageManage.setMeModel(meModel);
     }
   }
@@ -37,6 +38,15 @@ class _AppPageState extends State<AppPage> {
     if (data.statusCode == 200) {
       final chatList = ChatListModel.fromJson(data.data['data']).list;
       await StorageManage.setChatList(chatList);
+    }
+  }
+
+  /// 好友列表
+  Future<void> _getFriendList() async {
+    final data = await Api().get("/api/friends");
+    if (data.statusCode == 200) {
+      final friendList = FriendListModel.fromJson(data.data['data']).list;
+      await StorageManage.setFriendList(friendList);
     }
   }
 

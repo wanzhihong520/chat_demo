@@ -47,12 +47,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
         showToast('注册失败');
       }
     } else {
-      showToast(data['message']??'注册失败');
+      showToast(data['message'] ?? '注册失败');
     }
   }
+
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(centerTitle: true, title: Text('注册')),
+      backgroundColor: Color.fromRGBO(230, 230, 230, 1),
+      appBar: AppBar(centerTitle: true, title: Text('注册'), shape: Border()),
       body: ListView(
         padding: EdgeInsets.all(16),
         children: [
