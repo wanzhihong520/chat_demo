@@ -47,6 +47,7 @@ class SettingsPage extends StatelessWidget {
   }
 
   Future<void> _logout(BuildContext context) async {
+    ChatUtil.removeGlobalMsgListener();
     await Api().post('/api/auth/logout');
     final logoutRes = await TencentImSDKPlugin.v2TIMManager.logout();
     if (logoutRes.code != 0) {

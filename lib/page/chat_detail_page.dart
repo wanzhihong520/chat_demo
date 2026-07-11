@@ -1,4 +1,5 @@
 import 'package:chat_demo/import.dart';
+import 'package:video_compress/video_compress.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String receiver;
@@ -11,58 +12,138 @@ class ChatDetailPage extends StatefulWidget {
 class _ChatDetailPageState extends State<ChatDetailPage> {
   final TextEditingController _inputController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
   bool _isMore = false;
+  List<V2TimMessage> _messageList = [];
 
   @override
   void initState() {
     super.initState();
+    _initMessage();
     _inputController.addListener(() => setState(() {}));
+    ChatUtil.onNewMessage = _handleNewMessage;
   }
 
   @override
   void dispose() {
+    if (ChatUtil.onNewMessage == _handleNewMessage) {
+      ChatUtil.onNewMessage = null;
+    }
     _inputController.dispose();
     _focusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _sendMessage() async {
-    V2TimValueCallback<V2TimMsgCreateInfoResult> createTextMessageRes =
+  void _handleNewMessage(V2TimMessage message) {
+    if (message.sender == UserPro.userId) return;
+    final peerId = message.userID ?? message.sender ?? '';
+    if (peerId != widget.receiver) return;
+    if (!mounted) return;
+    setState(() => _messageList.add(message));
+    _scrollToBottom();
+  }
+
+  /// 初始化消息
+  Future<void> _initMessage() async {
+    V2TimValueCallback<List<V2TimMessage>> getHistoryMessageListRes =
         await TencentImSDKPlugin.v2TIMManager
             .getMessageManager()
-            .createTextMessage(
-              text: _inputController.text, // 文本信息
+            .getHistoryMessageList(
+              getType: HistoryMsgGetTypeEnum.V2TIM_GET_CLOUD_OLDER_MSG,
+              userID: widget.receiver,
+              groupID: '',
+              count: 20,
+              lastMsgID: null,
+              lastMsgSeq: -1,
+              messageTypeList: [],
             );
-    if (createTextMessageRes.code == 0) {
-      // 文本信息创建成功
-      String? id = createTextMessageRes.data?.id;
-      // 发送文本消息
-      // 在sendMessage时，若只填写receiver则发个人用户单聊消息
-      //                 若只填写groupID则发群组消息
-      //                 若填写了receiver与groupID则发群内的个人用户，消息在群聊中显示，只有指定receiver能看见
-      V2TimValueCallback<V2TimMessage> sendMessageRes = await TencentImSDKPlugin
-          .v2TIMManager
-          .getMessageManager()
-          .sendMessage(
-            id: id!, // 创建的messageid
-            receiver: widget.receiver, // 接收人id
-            groupID: "groupID", // 接收群组id
-            priority: MessagePriorityEnum.V2TIM_PRIORITY_DEFAULT, // 消息优先级
-            onlineUserOnly:
-                false, // 是否只有在线用户才能收到，如果设置为 true ，接收方历史消息拉取不到，常被用于实现“对方正在输入”或群组里的非重要提示等弱提示功能，该字段不支持 AVChatRoom。
-            isExcludedFromUnreadCount: false, // 发送消息是否计入会话未读数
-            isExcludedFromLastMessage: false, // 发送消息是否计入会话 lastMessage
-            needReadReceipt:
-                false, // 消息是否需要已读回执（只有 Group 消息有效，6.1 及以上版本支持，需要您购买旗舰版或企业版套餐）
-            offlinePushInfo: OfflinePushInfo(), // 离线推送时携带的标题和内容
-            cloudCustomData: "", // 消息云端数据，消息附带的额外的数据，存云端，消息的接收者可以访问到
-            localCustomData:
-                "", // 消息本地数据，消息附带的额外的数据，存本地，消息的接收者不可以访问到，App 卸载后数据丢失
-          );
-      if (sendMessageRes.code == 0) {
-        // 发送成功
-      }
+    if (getHistoryMessageListRes.code == 0) {
+      setState(() {
+        _messageList = getHistoryMessageListRes.data?.reversed.toList() ?? [];
+      });
     }
+  }
+
+  /// 创建成功后统一发送、上屏、同步会话
+  Future<void> _sendById(String id) async {
+    final message = await ChatUtil.sendToC2C(id: id, receiver: widget.receiver);
+    if (message == null || !mounted) return;
+    setState(() => _messageList.add(message));
+    ChatUtil.syncLastMessage(imUserId: widget.receiver, message: message);
+    _scrollToBottom();
+  }
+
+  Future<void> _sendText() async {
+    final text = _inputController.text.trim();
+    if (text.isEmpty) return;
+    final created = await TencentImSDKPlugin.v2TIMManager
+        .getMessageManager()
+        .createTextMessage(text: text);
+    if (created.code != 0 || created.data?.id == null) return;
+    _inputController.clear();
+    await _sendById(created.data!.id!);
+  }
+
+  Future<void> _sendImage(String path) async {
+    final source = File(path);
+    final compressed = await FlutterImageCompress.compressAndGetFile(
+      source.path,
+      '${source.parent.path}/chat_${DateTime.now().millisecondsSinceEpoch}.jpeg',
+      quality: 80,
+    );
+    final imagePath = compressed?.path ?? path;
+    final created = await TencentImSDKPlugin.v2TIMManager
+        .getMessageManager()
+        .createImageMessage(imagePath: imagePath);
+    if (created.code != 0 || created.data?.id == null) return;
+    setState(() => _isMore = false);
+    await _sendById(created.data!.id!);
+  }
+
+  Future<void> _sendVideo(String path) async {
+    final source = File(path);
+    final compressed = await VideoCompress.compressVideo(
+      source.path,
+      quality: VideoQuality.MediumQuality,
+    );
+    final videoPath = compressed?.path ?? path;
+    final coverPath = await VideoCompress.getFileThumbnail(source.path);
+    final created = await TencentImSDKPlugin.v2TIMManager
+        .getMessageManager()
+        .createVideoMessage(
+          videoFilePath: videoPath,
+          type: 'video/mp4',
+          duration: compressed!.duration?.toInt() ?? 0,
+          snapshotPath: coverPath.path,
+        );
+    if (created.code != 0 || created.data?.id == null) return;
+    setState(() => _isMore = false);
+    await _sendById(created.data!.id!);
+  }
+
+  Future<void> _pickFromAlbum() async {
+    final assets = await AssetPicker.pickAssets(
+      context,
+      pickerConfig: AssetPickerConfig(
+        requestType: RequestType.common,
+        maxAssets: 1,
+      ),
+    );
+    if (assets == null || assets.isEmpty) return;
+    final file = await assets.first.file;
+    if (file == null) return;
+    if (assets.first.type == AssetType.video) {
+      await _sendVideo(file.path);
+    } else {
+      await _sendImage(file.path);
+    }
+  }
+
+  Future<void> _pickFromCamera() async {
+    final file = await ImagePickerUtil.openCamera();
+    if (file == null) return;
+    await _sendImage(file.path);
   }
 
   Widget _buildMoreItem({required String icon, required String text}) {
@@ -85,6 +166,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
   }
 
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,14 +186,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         child: SafeArea(
           child: Column(
             children: [
-              Expanded(child: SizedBox()),
+              ListView.builder(
+                controller: _scrollController,
+                itemCount: _messageList.length,
+                itemBuilder: (context, index) {
+                  return ChatHistoryUtil(
+                    message: _messageList[index],
+                    isSelf: _messageList[index].sender == UserPro.userId,
+                  );
+                },
+              ).withExpanded(),
               Column(
                 children: [
                   ChatInputBar(
                     controller: _inputController,
                     focusNode: _focusNode,
                     hasText: _inputController.text.isNotEmpty,
-                    onSend: () {},
+                    onSend: _sendText,
                     onAddTap: () {
                       setState(() {
                         _isMore = !_isMore;
@@ -129,20 +230,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                             return _buildMoreItem(
                               icon: 'assets/images/photo.svg',
                               text: '相册',
-                            );
+                            ).withOnTap(_pickFromAlbum);
                           }
                           if (index == 1) {
                             return _buildMoreItem(
                               icon: 'assets/images/video.svg',
                               text: '拍摄',
-                            ).withOnTap(() async {
-                              final file = await ImagePickerUtil.openCamera();
-                              if (file != null) {
-                                setState(() {
-                                  _inputController.text = file.path;
-                                });
-                              }
-                            });
+                            ).withOnTap(_pickFromCamera);
                           }
                           return SizedBox.shrink();
                         },

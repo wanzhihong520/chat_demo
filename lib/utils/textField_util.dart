@@ -38,6 +38,7 @@ class TextFieldUtils extends StatelessWidget {
       cursorColor: Colors.black,
       onSubmitted: onSubmitted,
       decoration: InputDecoration(
+        isDense: true,
         hintText: hintText,
         border: InputBorder.none,
         hintStyle: hintStyle,

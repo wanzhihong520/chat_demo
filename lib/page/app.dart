@@ -13,7 +13,14 @@ class _AppPageState extends State<AppPage> {
   @override
   void initState() {
     super.initState();
+    ChatUtil.initGlobalMsgListener();
     _initData();
+  }
+
+  @override
+  void dispose() {
+    ChatUtil.removeGlobalMsgListener();
+    super.dispose();
   }
 
   Future<void> _initData() async {
@@ -34,20 +41,12 @@ class _AppPageState extends State<AppPage> {
 
   /// 聊天列表
   Future<void> _getChatList() async {
-    final data = await Api().get("/api/chat/list");
-    if (data.statusCode == 200) {
-      final chatList = ChatListModel.fromJson(data.data['data']).list;
-      await StorageManage.setChatList(chatList);
-    }
+    await ChatUtil.fetchChatList();
   }
 
   /// 好友列表
   Future<void> _getFriendList() async {
-    final data = await Api().get("/api/friends");
-    if (data.statusCode == 200) {
-      final friendList = FriendListModel.fromJson(data.data['data']).list;
-      await StorageManage.setFriendList(friendList);
-    }
+    await ChatUtil.fetchFriendList();
   }
 
   @override

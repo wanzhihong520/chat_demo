@@ -40,12 +40,8 @@ class _NewFriendPageState extends State<NewFriendPage> {
         _requests.removeWhere((e) => e.requestId == item.requestId);
       });
       showToast('已同意');
-      final data = await Api().get('/api/friends');
-      if (data.statusCode == 200) {
-        await StorageManage.setFriendList(
-          FriendListModel.fromJson(data.data['data']).list,
-        );
-      }
+      await ChatUtil.fetchFriendList();
+      await ChatUtil.fetchChatList();
     } else {
       showToast(response.data['message'] ?? '操作失败');
     }

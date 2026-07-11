@@ -8,8 +8,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<ChatModel> get _chatList => UserPro.chatList;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,30 +41,37 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: _chatList.isEmpty
-          ? Center(child: Text('暂无会话', style: FontStyleUtils.blackBody))
-          : ListView.separated(
-              separatorBuilder: (context, index) =>
-                  Divider(height: 0.5, color: Colors.grey[400]),
-              itemCount: _chatList.length,
-              itemBuilder: (context, index) {
-                final chat = _chatList[index];
-                return ChatItemUtil(
-                  name: chat.name,
-                  description: chat.description,
-                  avatarUrl: chat.avatarUrl,
-                  timeText: chat.timeText,
-                  isAi: chat.isAi,
-                  onTap: () {
-                    if (chat.isAi) {
-                      jumpPage(context, AichatDetailPage(aiId: chat.aiId));
-                    } else {
-                      jumpPage(context, ChatDetailPage(receiver: chat.id));
-                    }
-                  },
-                );
-              },
-            ),
+      body: ValueListenableBuilder<List<ChatModel>>(
+        valueListenable: ChatUtil.chatListNotifier,
+        builder: (_, list, __) {
+          final chatList = list.isNotEmpty ? list : UserPro.chatList;
+          if (chatList.isEmpty) {
+            return Center(child: Text('暂无会话', style: FontStyleUtils.blackBody));
+          }
+          return ListView.separated(
+            separatorBuilder: (context, index) =>
+                Divider(height: 0.5, color: Colors.grey[300]),
+            itemCount: chatList.length,
+            itemBuilder: (context, index) {
+              final chat = chatList[index];
+              return ChatItemUtil(
+                name: chat.name,
+                description: chat.description,
+                avatarUrl: chat.avatarUrl,
+                timeText: chat.timeText,
+                isAi: chat.isAi,
+                onTap: () {
+                  if (chat.isAi) {
+                    jumpPage(context, AichatDetailPage(aiId: chat.aiId));
+                  } else {
+                    jumpPage(context, ChatDetailPage(receiver: chat.id));
+                  }
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

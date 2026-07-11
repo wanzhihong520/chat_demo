@@ -28,7 +28,7 @@ class ChatInputBar extends StatelessWidget {
         color: Color.fromRGBO(247, 247, 247, 1),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SvgPicture.asset(
             "assets/images/voice.svg",

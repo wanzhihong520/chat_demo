@@ -48,8 +48,9 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ],
     );
+    if (cropped == null) return;
     final xFile = await FlutterImageCompress.compressAndGetFile(
-      File(cropped!.path).path,
+      File(cropped.path).path,
       "${file.parent.path}/avatar.jpeg",
       quality: 80,
     );

@@ -14,6 +14,8 @@ class FontStyleUtils {
   );
   static TextStyle blackBody = TextStyle(color: Colors.black, fontSize: 14);
   static TextStyle whiteBody = TextStyle(color: Colors.white, fontSize: 14);
+  static TextStyle whiteSmallBody = TextStyle(color: Colors.white, fontSize: 12);
+  static TextStyle graySmallBody = TextStyle(color: Colors.grey, fontSize: 12);
   static TextStyle grayBody = TextStyle(color: Colors.grey, fontSize: 14);
   static TextStyle themeBody = TextStyle(color: Colors.green, fontSize: 14);
   static TextStyle themeText = TextStyle(color: Colors.blue, fontSize: 16);

@@ -19,6 +19,18 @@ class _AddressPageState extends State<AddressPage> {
   void initState() {
     super.initState();
     _prepareFriendList();
+    ChatUtil.friendListNotifier.addListener(_onFriendListChanged);
+  }
+
+  @override
+  void dispose() {
+    ChatUtil.friendListNotifier.removeListener(_onFriendListChanged);
+    super.dispose();
+  }
+
+  void _onFriendListChanged() {
+    _prepareFriendList();
+    if (mounted) setState(() {});
   }
 
   void _prepareFriendList() {
@@ -96,6 +108,25 @@ class _AddressPageState extends State<AddressPage> {
         ChatItemUtil(
           name: item.name,
           avatarUrl: item.avatarUrl,
+          onTap: () {
+            final url = item.avatarUrl;
+            final fullUrl = url.isEmpty
+                ? ''
+                : (url.startsWith('http') ? url : BASE_URL + url);
+            jumpPage(
+              context,
+              FriendInfoPage(
+                searchModel: SearchModel(
+                  id: item.imUserId,
+                  username: item.imUserId,
+                  nickname: item.name,
+                  avatarUrl: fullUrl,
+                  imUserId: item.imUserId,
+                  isFriend: true,
+                ),
+              ),
+            );
+          },
         ),
         Divider(height: 1, color: Colors.grey[200]),
       ],

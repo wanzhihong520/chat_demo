@@ -17,13 +17,15 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         locale: Locale('zh', 'CN'),
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        supportedLocales: [
-          Locale('zh', 'CN'),
-          Locale('en', 'US'),
-        ],
+        supportedLocales: [Locale('zh', 'CN'), Locale('en', 'US')],
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           scaffoldBackgroundColor: Color.fromRGBO(244, 244, 244, 1),
+          sliderTheme: SliderThemeData(
+            activeTrackColor: Colors.white,
+            inactiveTrackColor: Colors.white38,
+            thumbColor: Colors.white,
+          ),
           appBarTheme: AppBarTheme(
             backgroundColor: Color.fromRGBO(230, 230, 230, 1),
             elevation: 0,
