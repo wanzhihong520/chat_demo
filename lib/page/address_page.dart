@@ -72,7 +72,7 @@ class _AddressPageState extends State<AddressPage> {
         children: [
           ValueListenableBuilder<int>(
             valueListenable: ChatUtil.friendRequestUnreadNotifier,
-            builder: (_, unread, __) {
+            builder: (_, unread, _) {
               return ChatItemUtil(
                 onTap: () async {
                   await Navigator.push(

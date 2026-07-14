@@ -105,10 +105,10 @@ class _AppPageState extends State<AppPage> {
       ),
       bottomNavigationBar: ValueListenableBuilder<int>(
         valueListenable: ChatUtil.unreadCountNotifier,
-        builder: (_, chatUnread, __) {
+        builder: (_, chatUnread, _) {
           return ValueListenableBuilder<int>(
             valueListenable: ChatUtil.friendRequestUnreadNotifier,
-            builder: (_, requestUnread, __) {
+            builder: (_, requestUnread, _) {
               return BottomNavigationBar(
                 currentIndex: _currentIndex,
                 selectedItemColor: Colors.green,

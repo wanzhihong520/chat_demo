@@ -95,7 +95,7 @@ class _GroupListPageState extends State<GroupListPage> {
           ? Center(child: CircularProgressIndicator(strokeWidth: 2))
           : ListView.separated(
               itemCount: _groups.length + 1,
-              separatorBuilder: (_, __) => Divider(
+              separatorBuilder: (_, _) => Divider(
                 height: 0.5,
                 thickness: 0.5,
                 color: Colors.grey[300],

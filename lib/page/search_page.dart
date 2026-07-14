@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:chat_demo/import.dart';
 
 class SearchPage extends StatefulWidget {
@@ -159,6 +161,5 @@ class _SearchPageState extends State<SearchPage> {
               ),
             ),
           );
-    ;
   }
 }

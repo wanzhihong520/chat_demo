@@ -51,6 +51,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color.fromRGBO(230, 230, 230, 1),

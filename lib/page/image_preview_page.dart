@@ -187,7 +187,7 @@ class _ImagePreviewPageState extends State<ImagePreviewPage> {
           backgroundDecoration: BoxDecoration(color: Colors.black),
           minScale: PhotoViewComputedScale.contained,
           maxScale: PhotoViewComputedScale.covered * 3,
-          onTapUp: widget.showAppBar ? null : (_, __, ___) => backPage(context),
+          onTapUp: widget.showAppBar ? null : (_, _, _) => backPage(context),
         ),
         widget.showAppBar
             ? SizedBox.shrink()

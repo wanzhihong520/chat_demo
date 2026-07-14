@@ -12,7 +12,6 @@ class _AddFriendPageState extends State<AddFriendPage> {
   final TextEditingController _greetingController = TextEditingController();
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _greetingController.text = '我是${UserPro.meModel?.nickname}';
   }

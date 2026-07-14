@@ -47,10 +47,10 @@ class _HomePageState extends State<HomePage> {
       ),
       body: ValueListenableBuilder<Map<String, int>>(
         valueListenable: ChatUtil.conversationUnreadNotifier,
-        builder: (_, __, ___) {
+        builder: (_, _, _) {
           return ValueListenableBuilder<List<ChatModel>>(
             valueListenable: ChatUtil.chatListNotifier,
-            builder: (_, list, __) {
+            builder: (_, list, _) {
               final chatList = list.isNotEmpty ? list : UserPro.chatList;
               if (chatList.isEmpty) {
                 return Center(

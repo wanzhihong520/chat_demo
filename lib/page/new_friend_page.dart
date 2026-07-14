@@ -52,7 +52,7 @@ class _NewFriendPageState extends State<NewFriendPage> {
       ),
       body: ValueListenableBuilder<List<FriendRequestModel>>(
         valueListenable: ChatUtil.friendRequestListNotifier,
-        builder: (_, requests, __) {
+        builder: (_, requests, _) {
           if (requests.isEmpty) {
             return Center(
               child: Text('暂无好友申请', style: FontStyleUtils.blackBody),
