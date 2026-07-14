@@ -11,12 +11,25 @@ class ChatUtil {
   static final friendRequestListNotifier =
       ValueNotifier<List<FriendRequestModel>>([]);
   static final friendRequestUnreadNotifier = ValueNotifier<int>(0);
+  static final notificationListNotifier =
+      ValueNotifier<List<NotificationModel>>([]);
+  static final notificationUnreadNotifier = ValueNotifier<int>(0);
+  /// 通讯录 Tab 总未读：好友申请 + 通知
+  static final addressUnreadNotifier = ValueNotifier<int>(0);
   static final unreadCountNotifier = ValueNotifier<int>(0);
   static final conversationUnreadNotifier = ValueNotifier<Map<String, int>>({});
 
   static V2TimAdvancedMsgListener? _msgListener;
   static V2TimConversationListener? _conversationListener;
   static void Function(V2TimMessage message)? onNewMessage;
+  /// 被删好友 / 群解散时，通知当前聊天页退出
+  static void Function(String type, Map<String, dynamic> data)?
+      onSessionInvalidated;
+
+  static void _refreshAddressUnread() {
+    addressUnreadNotifier.value = friendRequestUnreadNotifier.value +
+        notificationUnreadNotifier.value;
+  }
 
   /// 拉取会话列表并更新本地
   static Future<List<ChatModel>> fetchChatList() async {
@@ -105,6 +118,18 @@ class ChatUtil {
         );
   }
 
+  /// 删除 IM 会话（未读会一并从总未读中扣除）
+  static Future<void> deleteImConversation(String conversationID) async {
+    if (conversationID.isEmpty) return;
+    await TencentImSDKPlugin.v2TIMManager
+        .getConversationManager()
+        .deleteConversation(conversationID: conversationID);
+    final map = Map<String, int>.from(conversationUnreadNotifier.value);
+    map.remove(conversationID);
+    conversationUnreadNotifier.value = map;
+    await fetchTotalUnreadCount();
+  }
+
   /// 拉取好友列表并更新本地
   static Future<List<FriendModel>> fetchFriendList() async {
     final response = await Api().get('/api/friends');
@@ -134,6 +159,7 @@ class ChatUtil {
     );
     friendRequestListNotifier.value = model.list;
     friendRequestUnreadNotifier.value = model.unreadCount;
+    _refreshAddressUnread();
   }
 
   /// 标记好友申请已读
@@ -141,6 +167,30 @@ class ChatUtil {
     final res = await Api().post('/api/friends/requests/read');
     if (res.statusCode == 200) {
       friendRequestUnreadNotifier.value = 0;
+      _refreshAddressUnread();
+    }
+  }
+
+  /// 拉取通知列表，并更新未读数
+  static Future<void> fetchNotifications() async {
+    final data = await Api().get('/api/notifications');
+    if (data.statusCode != 200 || data.data is! Map) return;
+    final body = data.data as Map<String, dynamic>;
+    if (body['data'] is! Map) return;
+    final model = NotificationListModel.fromJson(
+      body['data'] as Map<String, dynamic>,
+    );
+    notificationListNotifier.value = model.list;
+    notificationUnreadNotifier.value = model.unreadCount;
+    _refreshAddressUnread();
+  }
+
+  /// 标记通知已读
+  static Future<void> markNotificationsRead() async {
+    final res = await Api().post('/api/notifications/read');
+    if (res.statusCode == 200) {
+      notificationUnreadNotifier.value = 0;
+      _refreshAddressUnread();
     }
   }
 
@@ -587,11 +637,64 @@ class ChatUtil {
     }
   }
 
+  static Map<String, dynamic> _asStringKeyMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return {};
+  }
+
+  /// 自定义消息：不当聊天消息展示
+  static void _handleCustomMessage(V2TimMessage message) {
+    try {
+      final raw = message.customElem?.data ?? '{}';
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return;
+      final data = Map<String, dynamic>.from(decoded);
+      final meta = _asStringKeyMap(data['meta']);
+      final payload = {...data, ...meta};
+      if (message.sender != null && message.sender!.isNotEmpty) {
+        payload.putIfAbsent('fromImUserId', () => message.sender);
+      }
+
+      switch (data['type']) {
+        case 'friend_request':
+          fetchFriendRequests();
+          break;
+        case 'friend_deleted':
+          final userId =
+              '${payload['fromImUserId'] ?? payload['imUserId'] ?? ''}';
+          if (userId.isNotEmpty) {
+            deleteImConversation('c2c_$userId');
+          }
+          fetchChatList();
+          fetchFriendList();
+          fetchNotifications();
+          onSessionInvalidated?.call('friend_deleted', payload);
+          break;
+        case 'group_dissolved':
+          final groupId =
+              '${payload['imGroupId'] ?? payload['groupId'] ?? ''}';
+          if (groupId.isNotEmpty) {
+            deleteImConversation('group_$groupId');
+          }
+          fetchChatList();
+          fetchNotifications();
+          onSessionInvalidated?.call('group_dissolved', payload);
+          break;
+      }
+    } catch (_) {}
+  }
+
   static void initGlobalMsgListener() {
     if (_msgListener != null) return;
 
     _msgListener = V2TimAdvancedMsgListener(
       onRecvNewMessage: (V2TimMessage message) {
+        if (message.elemType == MessageElemType.V2TIM_ELEM_TYPE_CUSTOM) {
+          _handleCustomMessage(message);
+          return;
+        }
+
         onNewMessage?.call(message);
 
         final groupId = message.groupID ?? '';
@@ -622,6 +725,7 @@ class ChatUtil {
         .removeAdvancedMsgListener(listener: _msgListener!);
     _msgListener = null;
     onNewMessage = null;
+    onSessionInvalidated = null;
   }
 
   static Future<void> fetchTotalUnreadCount() async {

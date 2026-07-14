@@ -66,6 +66,38 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (widget.isGroup) _loadGroupDetail();
     _inputController.addListener(() => setState(() {}));
     ChatUtil.onNewMessage = _handleNewMessage;
+    ChatUtil.onSessionInvalidated = _onSessionInvalidated;
+  }
+
+  void _markRead() {
+    ChatUtil.markConversationRead(
+      receiver: widget.isGroup ? null : widget.receiver,
+      imGroupId: widget.isGroup ? widget._imGroupId : null,
+    );
+  }
+
+  void _onSessionInvalidated(String type, Map<String, dynamic> data) {
+    if (!mounted) return;
+    if (type == 'friend_deleted') {
+      if (widget.isGroup) return;
+      final id =
+          '${data['fromImUserId'] ?? data['imUserId'] ?? data['userID'] ?? ''}';
+      if (id.isEmpty || id != widget.receiver) return;
+      showToast('好友关系已解除');
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+    if (type == 'group_dissolved') {
+      if (!widget.isGroup) return;
+      final gid =
+          '${data['imGroupId'] ?? data['groupId'] ?? data['groupID'] ?? ''}';
+      if (gid.isEmpty ||
+          (gid != widget._imGroupId && gid != widget.groupId)) {
+        return;
+      }
+      showToast('群聊已解散');
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
   }
 
   @override
@@ -73,6 +105,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (ChatUtil.onNewMessage == _handleNewMessage) {
       ChatUtil.onNewMessage = null;
     }
+    if (ChatUtil.onSessionInvalidated == _onSessionInvalidated) {
+      ChatUtil.onSessionInvalidated = null;
+    }
+    _markRead();
     _inputController.dispose();
     _focusNode.dispose();
     _scrollController.dispose();
@@ -110,6 +146,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (!mounted) return;
     setState(() => _messageList.add(message));
     _scrollToBottom();
+    _markRead();
   }
 
   Future<void> _initMessage() async {

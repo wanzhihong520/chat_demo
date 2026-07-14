@@ -30,6 +30,7 @@ class _AppPageState extends State<AppPage> {
     await _getChatList();
     await _getFriendList();
     await _loadRequests();
+    await _loadNotifications();
     if (mounted) setState(() {});
   }
 
@@ -55,6 +56,11 @@ class _AppPageState extends State<AppPage> {
   /// 好友申请列表（含未读数）
   Future<void> _loadRequests() async {
     await ChatUtil.fetchFriendRequests();
+  }
+
+  /// 通知列表（含未读数）
+  Future<void> _loadNotifications() async {
+    await ChatUtil.fetchNotifications();
   }
 
   Widget _buildTabIcon(
@@ -107,8 +113,8 @@ class _AppPageState extends State<AppPage> {
         valueListenable: ChatUtil.unreadCountNotifier,
         builder: (_, chatUnread, _) {
           return ValueListenableBuilder<int>(
-            valueListenable: ChatUtil.friendRequestUnreadNotifier,
-            builder: (_, requestUnread, _) {
+            valueListenable: ChatUtil.addressUnreadNotifier,
+            builder: (_, addressUnread, _) {
               return BottomNavigationBar(
                 currentIndex: _currentIndex,
                 selectedItemColor: Colors.green,
@@ -136,12 +142,12 @@ class _AppPageState extends State<AppPage> {
                     icon: _buildTabIcon(
                       'assets/images/address.svg',
                       Colors.grey,
-                      unreadCount: requestUnread,
+                      unreadCount: addressUnread,
                     ),
                     activeIcon: _buildTabIcon(
                       'assets/images/address.svg',
                       Colors.green,
-                      unreadCount: requestUnread,
+                      unreadCount: addressUnread,
                     ),
                     label: '通讯录',
                   ),

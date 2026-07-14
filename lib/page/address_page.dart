@@ -11,6 +11,7 @@ class AddressPage extends StatefulWidget {
 class _AddressPageState extends State<AddressPage> {
   static const String _newFriendName = '新的朋友';
   static const String _groupChatName = '群聊';
+  static const String _notificationName = '通知中心';
   static const String _topTag = '↑';
 
   List<FriendModel> _friendList = [];
@@ -62,6 +63,13 @@ class _AddressPageState extends State<AddressPage> {
         isAi: false,
         tag: _topTag,
       ),
+      FriendModel(
+        imUserId: '',
+        name: _notificationName,
+        avatarUrl: '',
+        isAi: false,
+        tag: _topTag,
+      ),
     ]);
   }
 
@@ -104,6 +112,26 @@ class _AddressPageState extends State<AddressPage> {
             asset: 'assets/images/group.svg',
             boxColor: Colors.green,
             onTap: () => jumpPage(context, GroupListPage()),
+          ),
+          Divider(height: 1, color: Colors.grey[200]),
+        ],
+      );
+    }
+    if (item.name == _notificationName) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ValueListenableBuilder<int>(
+            valueListenable: ChatUtil.notificationUnreadNotifier,
+            builder: (_, unread, _) {
+              return ChatItemUtil(
+                name: _notificationName,
+                asset: 'assets/images/chat_history.svg',
+                boxColor: Colors.blue,
+                unreadCount: unread,
+                onTap: () => jumpPage(context, NotificationCenterPage()),
+              );
+            },
           ),
           Divider(height: 1, color: Colors.grey[200]),
         ],

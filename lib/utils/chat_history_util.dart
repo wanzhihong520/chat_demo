@@ -87,6 +87,157 @@ class _SoundBubble extends StatelessWidget {
   }
 }
 
+class _VideoBubble extends StatefulWidget {
+  final V2TimMessage message;
+
+  const _VideoBubble({required this.message});
+
+  @override
+  State<_VideoBubble> createState() => _VideoBubbleState();
+}
+
+class _VideoBubbleState extends State<_VideoBubble> {
+  String _coverUrl = '';
+  String _playUrl = '';
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+  }
+
+  String _pick(List<String?> candidates) {
+    for (final c in candidates) {
+      if (c == null || c.isEmpty) continue;
+      if (c.startsWith('http')) return c;
+      if (File(c).existsSync()) return c;
+    }
+    for (final c in candidates) {
+      if (c != null && c.isNotEmpty && c.startsWith('http')) return c;
+    }
+    return '';
+  }
+
+  Future<void> _resolve() async {
+    final elem = widget.message.videoElem;
+    var cover = _pick([
+      elem?.localSnapshotUrl,
+      elem?.snapshotPath,
+      elem?.snapshotUrl,
+    ]);
+    var play = _pick([
+      elem?.localVideoUrl,
+      elem?.videoPath,
+      elem?.videoUrl,
+    ]);
+
+    if (mounted) {
+      setState(() {
+        _coverUrl = cover;
+        _playUrl = play;
+      });
+    }
+    if (cover.isNotEmpty && play.isNotEmpty) return;
+    if (!mounted) return;
+
+    setState(() => _loading = true);
+    final res = await TencentImSDKPlugin.v2TIMManager
+        .getMessageManager()
+        .getMessageOnlineUrl(message: widget.message);
+    if (!mounted) return;
+
+    if (res.code == 0) {
+      final online = res.data?.videoElem;
+      cover = _pick([
+        cover,
+        online?.localSnapshotUrl,
+        online?.snapshotUrl,
+        online?.snapshotPath,
+      ]);
+      play = _pick([
+        play,
+        online?.localVideoUrl,
+        online?.videoUrl,
+        online?.videoPath,
+      ]);
+    }
+    setState(() {
+      _coverUrl = cover;
+      _playUrl = play;
+      _loading = false;
+    });
+  }
+
+  Widget _buildCover() {
+    if (_coverUrl.isEmpty) {
+      return Container(
+        width: 160,
+        height: 120,
+        color: Colors.black12,
+        alignment: Alignment.center,
+        child: _loading
+            ? SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(Icons.videocam, color: Colors.black38),
+      );
+    }
+    if (_coverUrl.startsWith('http')) {
+      return Image.network(_coverUrl, fit: BoxFit.cover);
+    }
+    return Image.file(File(_coverUrl), fit: BoxFit.cover);
+  }
+
+  Future<void> _openPreview(BuildContext context) async {
+    if (_playUrl.isEmpty) await _resolve();
+    if (!context.mounted || _playUrl.isEmpty) return;
+    jumpPage(context, ImagePreviewPage(imageUrl: _playUrl, isVideo: true));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = widget.message.videoElem?.duration ?? 0;
+    final seconds = duration >= 1000 ? (duration / 1000).round() : duration;
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+
+    return IntrinsicWidth(
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 240, maxHeight: 240),
+              child: _buildCover(),
+            ),
+          ),
+          Positioned.fill(
+            child: Center(
+              child: SvgPicture.asset(
+                'assets/images/play.svg',
+                width: 48,
+                height: 48,
+                colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 4,
+            right: 4,
+            child: Text(
+              '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
+              style: FontStyleUtils.whiteSmallBody,
+            ),
+          ),
+        ],
+      ),
+    ).withOnTap(() => _openPreview(context));
+  }
+}
+
 class ChatHistoryUtil extends StatelessWidget {
   final V2TimMessage message;
   final bool? isSelf;
@@ -191,12 +342,7 @@ class ChatHistoryUtil extends StatelessWidget {
       case MessageElemType.V2TIM_ELEM_TYPE_SOUND:
         return _SoundBubble(message: message, isSelf: _isSelf);
       case MessageElemType.V2TIM_ELEM_TYPE_VIDEO:
-        return _videoBubble(
-          context,
-          message.videoElem?.videoPath ?? '',
-          message.videoElem?.snapshotPath ?? '',
-          message.videoElem?.duration ?? 0,
-        );
+        return _VideoBubble(message: message);
       case MessageElemType.V2TIM_ELEM_TYPE_FILE:
         return _mediaBubble(
           icon: Icons.insert_drive_file,
@@ -208,51 +354,6 @@ class ChatHistoryUtil extends StatelessWidget {
       default:
         return null;
     }
-  }
-
-  Widget _videoBubble(
-    BuildContext context,
-    String videoPath,
-    String videoUrl,
-    int duration,
-  ) {
-    final seconds = duration >= 1000 ? (duration / 1000).round() : duration;
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
-    final video = videoUrl.startsWith('http')
-        ? Image.network(videoUrl, fit: BoxFit.cover)
-        : Image.file(File(videoUrl), fit: BoxFit.cover);
-    return IntrinsicWidth(
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 240, maxHeight: 240),
-              child: video,
-            ),
-          ),
-          Positioned.fill(
-            child: Center(
-              child: SvgPicture.asset(
-                'assets/images/play.svg',
-                width: 48,
-                height: 48,
-                colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 4,
-            right: 4,
-            child: Text(
-              '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
-              style: FontStyleUtils.whiteSmallBody,
-            ),
-          ),
-        ],
-      ),
-    ).withOnTap(() => _previewImage(context, videoPath, isVideo: true));
   }
 
   Widget _textBubble(String text) {
