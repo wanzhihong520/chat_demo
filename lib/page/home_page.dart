@@ -21,7 +21,11 @@ class _HomePageState extends State<HomePage> {
               height: 28,
             ),
             items: [
-              PopupMenuItemModel(icon: 'assets/images/chat.svg', text: '发起群聊'),
+              PopupMenuItemModel(
+                icon: 'assets/images/chat.svg',
+                text: '发起群聊',
+                onTap: () => jumpPage(context, CreateGroupPage()),
+              ),
               PopupMenuItemModel(
                 icon: 'assets/images/add_friend.svg',
                 text: '添加好友',
@@ -41,31 +45,56 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: ValueListenableBuilder<List<ChatModel>>(
-        valueListenable: ChatUtil.chatListNotifier,
-        builder: (_, list, __) {
-          final chatList = list.isNotEmpty ? list : UserPro.chatList;
-          if (chatList.isEmpty) {
-            return Center(child: Text('暂无会话', style: FontStyleUtils.blackBody));
-          }
-          return ListView.separated(
-            separatorBuilder: (context, index) =>
-                Divider(height: 0.5, color: Colors.grey[300]),
-            itemCount: chatList.length,
-            itemBuilder: (context, index) {
-              final chat = chatList[index];
-              return ChatItemUtil(
-                name: chat.name,
-                description: chat.description,
-                avatarUrl: chat.avatarUrl,
-                timeText: chat.timeText,
-                isAi: chat.isAi,
-                onTap: () {
-                  if (chat.isAi) {
-                    jumpPage(context, AichatDetailPage(aiId: chat.aiId));
-                  } else {
-                    jumpPage(context, ChatDetailPage(receiver: chat.id));
-                  }
+      body: ValueListenableBuilder<Map<String, int>>(
+        valueListenable: ChatUtil.conversationUnreadNotifier,
+        builder: (_, __, ___) {
+          return ValueListenableBuilder<List<ChatModel>>(
+            valueListenable: ChatUtil.chatListNotifier,
+            builder: (_, list, __) {
+              final chatList = list.isNotEmpty ? list : UserPro.chatList;
+              if (chatList.isEmpty) {
+                return Center(
+                  child: Text('暂无会话', style: FontStyleUtils.blackBody),
+                );
+              }
+              return ListView.separated(
+                separatorBuilder: (context, index) =>
+                    Divider(height: 0.5, color: Colors.grey[300]),
+                itemCount: chatList.length,
+                itemBuilder: (context, index) {
+                  final chat = chatList[index];
+                  return ChatItemUtil(
+                    name: chat.name,
+                    description: chat.description,
+                    avatarUrl: chat.avatarUrl,
+                    timeText: chat.timeText,
+                    isAi: chat.isAi,
+                    unreadCount: ChatUtil.unreadForChat(chat),
+                    onTap: () {
+                      if (chat.isAi) {
+                        jumpPage(context, AichatDetailPage(aiId: chat.aiId));
+                      } else if (chat.isGroup) {
+                        jumpPage(
+                          context,
+                          ChatDetailPage(
+                            groupId: chat.groupId ?? chat.id,
+                            imGroupId: chat.imGroupId ?? chat.id,
+                            title: chat.name,
+                            avatarUrl: chat.avatarUrl,
+                          ),
+                        );
+                      } else {
+                        jumpPage(
+                          context,
+                          ChatDetailPage(
+                            receiver: chat.imUserId ?? chat.id,
+                            title: chat.name,
+                            avatarUrl: chat.avatarUrl,
+                          ),
+                        );
+                      }
+                    },
+                  );
                 },
               );
             },

@@ -53,7 +53,14 @@ class _FriendInfoPageState extends State<FriendInfoPage> {
             ),
           ).withOnTap(() {
             if (widget.searchModel.isFriend) {
-              jumpPage(context, ChatDetailPage(receiver: widget.searchModel.id));
+              jumpPage(
+                context,
+                ChatDetailPage(
+                  receiver: widget.searchModel.imUserId,
+                  title: widget.searchModel.nickname,
+                  avatarUrl: widget.searchModel.avatarUrl,
+                ),
+              );
             } else {
               jumpPage(context, AddFriendPage(searchModel: widget.searchModel));
             }

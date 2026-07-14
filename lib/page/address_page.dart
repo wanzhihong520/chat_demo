@@ -70,20 +70,26 @@ class _AddressPageState extends State<AddressPage> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ChatItemUtil(
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => NewFriendPage()),
+          ValueListenableBuilder<int>(
+            valueListenable: ChatUtil.friendRequestUnreadNotifier,
+            builder: (_, unread, __) {
+              return ChatItemUtil(
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => NewFriendPage()),
+                  );
+                  if (mounted) {
+                    _prepareFriendList();
+                    setState(() {});
+                  }
+                },
+                name: _newFriendName,
+                asset: 'assets/images/add_friend.svg',
+                boxColor: Colors.orange,
+                unreadCount: unread,
               );
-              if (mounted) {
-                _prepareFriendList();
-                setState(() {});
-              }
             },
-            name: _newFriendName,
-            asset: 'assets/images/add_friend.svg',
-            boxColor: Colors.orange,
           ),
           Divider(height: 1, color: Colors.grey[200]),
         ],
@@ -97,6 +103,7 @@ class _AddressPageState extends State<AddressPage> {
             name: _groupChatName,
             asset: 'assets/images/group.svg',
             boxColor: Colors.green,
+            onTap: () => jumpPage(context, GroupListPage()),
           ),
           Divider(height: 1, color: Colors.grey[200]),
         ],
@@ -147,7 +154,11 @@ class _AddressPageState extends State<AddressPage> {
               height: 28,
             ),
             items: [
-              PopupMenuItemModel(icon: 'assets/images/chat.svg', text: '发起群聊'),
+              PopupMenuItemModel(
+                icon: 'assets/images/chat.svg',
+                text: '发起群聊',
+                onTap: () => jumpPage(context, CreateGroupPage()),
+              ),
               PopupMenuItemModel(
                 icon: 'assets/images/add_friend.svg',
                 text: '添加好友',

@@ -8,26 +8,15 @@ class NewFriendPage extends StatefulWidget {
 }
 
 class _NewFriendPageState extends State<NewFriendPage> {
-  List<FriendRequestModel> _requests = [];
-  bool _loading = true;
-
   @override
   void initState() {
     super.initState();
-    _loadRequests();
+    _onEnter();
   }
 
-  Future<void> _loadRequests() async {
-    final data = await Api().get('/api/friends/requests');
-    if (!mounted) return;
-    if (data.statusCode == 200) {
-      setState(() {
-        _requests = FriendRequestListModel.fromJson(data.data['data']).list;
-        _loading = false;
-      });
-    } else {
-      setState(() => _loading = false);
-    }
+  Future<void> _onEnter() async {
+    await ChatUtil.markFriendRequestsRead();
+    await ChatUtil.fetchFriendRequests();
   }
 
   Future<void> _acceptRequest(FriendRequestModel item) async {
@@ -36,9 +25,10 @@ class _NewFriendPageState extends State<NewFriendPage> {
     );
     if (!mounted) return;
     if (response.statusCode == 200) {
-      setState(() {
-        _requests.removeWhere((e) => e.requestId == item.requestId);
-      });
+      final list = List<FriendRequestModel>.from(
+        ChatUtil.friendRequestListNotifier.value,
+      )..removeWhere((e) => e.requestId == item.requestId);
+      ChatUtil.friendRequestListNotifier.value = list;
       showToast('已同意');
       await ChatUtil.fetchFriendList();
       await ChatUtil.fetchChatList();
@@ -60,73 +50,79 @@ class _NewFriendPageState extends State<NewFriendPage> {
           ),
         ],
       ),
-      body: _loading
-          ? Center(child: CircularProgressIndicator())
-          : _requests.isEmpty
-          ? Center(child: Text('暂无好友申请', style: FontStyleUtils.blackBody))
-          : Column(
-              children: [
-                ContainerUtils(
-                  alignment: Alignment.centerLeft,
-                  padding: [12, 12, 8, 8],
-                  color: Color.fromRGBO(230, 230, 230, 1),
-                  child: Text('待同意', style: FontStyleUtils.blackTitle),
-                ),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: _requests.length,
-                    separatorBuilder: (context, index) =>
-                        Divider(height: 1, color: Colors.grey[200]),
-                    itemBuilder: (context, index) {
-                      final item = _requests[index];
-                      final url = item.from.avatarUrl;
-                      final fullUrl = url.isEmpty
-                          ? ''
-                          : (url.startsWith('http') ? url : BASE_URL + url);
-                      return Padding(
-                        padding: EdgeInsets.fromLTRB(16, 16, 12, 12),
-                        child: Row(
-                          children: [
-                            if (fullUrl.isNotEmpty)
-                              PortraitUtil(url: fullUrl, width: 48, height: 48),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.from.nickname.isNotEmpty
-                                        ? item.from.nickname
-                                        : item.from.username,
-                                    style: FontStyleUtils.blackTitle,
-                                  ),
-                                  if (item.wording.isNotEmpty)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: 4),
-                                      child: Text(
-                                        item.wording,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: FontStyleUtils.blackBody,
-                                      ),
+      body: ValueListenableBuilder<List<FriendRequestModel>>(
+        valueListenable: ChatUtil.friendRequestListNotifier,
+        builder: (_, requests, __) {
+          if (requests.isEmpty) {
+            return Center(
+              child: Text('暂无好友申请', style: FontStyleUtils.blackBody),
+            );
+          }
+          return Column(
+            children: [
+              ContainerUtils(
+                alignment: Alignment.centerLeft,
+                padding: [12, 12, 8, 8],
+                color: Color.fromRGBO(230, 230, 230, 1),
+                child: Text('待同意', style: FontStyleUtils.blackTitle),
+              ),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: requests.length,
+                  separatorBuilder: (context, index) =>
+                      Divider(height: 1, color: Colors.grey[200]),
+                  itemBuilder: (context, index) {
+                    final item = requests[index];
+                    final url = item.from.avatarUrl;
+                    final fullUrl = url.isEmpty
+                        ? ''
+                        : (url.startsWith('http') ? url : BASE_URL + url);
+                    return Padding(
+                      padding: EdgeInsets.fromLTRB(16, 16, 12, 12),
+                      child: Row(
+                        children: [
+                          if (fullUrl.isNotEmpty)
+                            PortraitUtil(url: fullUrl, width: 48, height: 48),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.from.nickname.isNotEmpty
+                                      ? item.from.nickname
+                                      : item.from.username,
+                                  style: FontStyleUtils.blackTitle,
+                                ),
+                                if (item.wording.isNotEmpty)
+                                  Padding(
+                                    padding: EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      item.wording,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: FontStyleUtils.blackBody,
                                     ),
-                                ],
-                              ),
+                                  ),
+                              ],
                             ),
-                            ContainerUtils(
-                              radius: 4,
-                              padding: [12, 12, 4, 4],
-                              color: Color.fromRGBO(220, 220, 220, 1),
-                              child: Text('同意'),
-                            ).withOnTap(() => _acceptRequest(item)),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                          ),
+                          ContainerUtils(
+                            radius: 4,
+                            padding: [12, 12, 4, 4],
+                            color: Color.fromRGBO(220, 220, 220, 1),
+                            child: Text('同意'),
+                          ).withOnTap(() => _acceptRequest(item)),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

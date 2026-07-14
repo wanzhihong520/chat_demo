@@ -23,31 +23,18 @@ class SettingsPage extends StatelessWidget {
   }
 
   Future<void> _confirmLogout(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: Text('退出登录', style: FontStyleUtils.blackTitle),
-        content: Text('确定要退出登录吗？', style: FontStyleUtils.blackBody),
-        actions: [
-          TextButton(
-            onPressed: () => backPage(context, false),
-            child: Text('取消', style: FontStyleUtils.blackBody),
-          ),
-          TextButton(
-            onPressed: () => backPage(context, true),
-            child: Text('确定', style: FontStyleUtils.themeBody),
-          ),
-        ],
-      ),
+    final confirmed = await ConfirmDialogUtil.show(
+      context,
+      message: '确定要退出登录吗？',
     );
-    if (confirmed == true && context.mounted) {
+    if (confirmed && context.mounted) {
       await _logout(context);
     }
   }
 
   Future<void> _logout(BuildContext context) async {
     ChatUtil.removeGlobalMsgListener();
+    ChatUtil.removeUnreadListener();
     await Api().post('/api/auth/logout');
     final logoutRes = await TencentImSDKPlugin.v2TIMManager.logout();
     if (logoutRes.code != 0) {

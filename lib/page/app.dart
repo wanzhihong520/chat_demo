@@ -14,12 +14,14 @@ class _AppPageState extends State<AppPage> {
   void initState() {
     super.initState();
     ChatUtil.initGlobalMsgListener();
+    ChatUtil.initUnreadListener();
     _initData();
   }
 
   @override
   void dispose() {
     ChatUtil.removeGlobalMsgListener();
+    ChatUtil.removeUnreadListener();
     super.dispose();
   }
 
@@ -27,6 +29,7 @@ class _AppPageState extends State<AppPage> {
     await _getMeData();
     await _getChatList();
     await _getFriendList();
+    await _loadRequests();
     if (mounted) setState(() {});
   }
 
@@ -49,6 +52,50 @@ class _AppPageState extends State<AppPage> {
     await ChatUtil.fetchFriendList();
   }
 
+  /// 好友申请列表（含未读数）
+  Future<void> _loadRequests() async {
+    await ChatUtil.fetchFriendRequests();
+  }
+
+  Widget _buildTabIcon(
+    String asset,
+    Color color, {
+    int unreadCount = 0,
+  }) {
+    final icon = SvgPicture.asset(
+      asset,
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      width: 24,
+      height: 24,
+    );
+    if (unreadCount <= 0) return icon;
+
+    final text = unreadCount > 99 ? '99+' : '$unreadCount';
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        icon,
+        Positioned(
+          right: -10,
+          top: -6,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: text.length > 2 ? 4 : 5),
+            constraints: BoxConstraints(minWidth: 16, minHeight: 16),
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              text,
+              style: TextStyle(color: Colors.white, fontSize: 10, height: 1.2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,62 +103,70 @@ class _AppPageState extends State<AppPage> {
         index: _currentIndex,
         children: [HomePage(), AddressPage(), MinePage()],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.green,
-        backgroundColor: Color.fromRGBO(245, 245, 245, 1),
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: ChatUtil.unreadCountNotifier,
+        builder: (_, chatUnread, __) {
+          return ValueListenableBuilder<int>(
+            valueListenable: ChatUtil.friendRequestUnreadNotifier,
+            builder: (_, requestUnread, __) {
+              return BottomNavigationBar(
+                currentIndex: _currentIndex,
+                selectedItemColor: Colors.green,
+                backgroundColor: Color.fromRGBO(245, 245, 245, 1),
+                onTap: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+                items: [
+                  BottomNavigationBarItem(
+                    icon: _buildTabIcon(
+                      'assets/images/chat.svg',
+                      Colors.grey,
+                      unreadCount: chatUnread,
+                    ),
+                    activeIcon: _buildTabIcon(
+                      'assets/images/chat.svg',
+                      Colors.green,
+                      unreadCount: chatUnread,
+                    ),
+                    label: '聊天',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: _buildTabIcon(
+                      'assets/images/address.svg',
+                      Colors.grey,
+                      unreadCount: requestUnread,
+                    ),
+                    activeIcon: _buildTabIcon(
+                      'assets/images/address.svg',
+                      Colors.green,
+                      unreadCount: requestUnread,
+                    ),
+                    label: '通讯录',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: SvgPicture.asset(
+                      'assets/images/mine.svg',
+                      colorFilter:
+                          ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                      width: 24,
+                      height: 24,
+                    ),
+                    activeIcon: SvgPicture.asset(
+                      'assets/images/mine.svg',
+                      colorFilter:
+                          ColorFilter.mode(Colors.green, BlendMode.srcIn),
+                      width: 24,
+                      height: 24,
+                    ),
+                    label: '我的',
+                  ),
+                ],
+              );
+            },
+          );
         },
-        items: [
-          BottomNavigationBarItem(
-            icon: SvgPicture.asset(
-              'assets/images/chat.svg',
-              colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
-              width: 24,
-              height: 24,
-            ),
-            activeIcon: SvgPicture.asset(
-              'assets/images/chat.svg',
-              colorFilter: ColorFilter.mode(Colors.green, BlendMode.srcIn),
-              width: 24,
-              height: 24,
-            ),
-            label: '聊天',
-          ),
-          BottomNavigationBarItem(
-            icon: SvgPicture.asset(
-              'assets/images/address.svg',
-              colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
-              width: 24,
-              height: 24,
-            ),
-            activeIcon: SvgPicture.asset(
-              'assets/images/address.svg',
-              colorFilter: ColorFilter.mode(Colors.green, BlendMode.srcIn),
-              width: 24,
-              height: 24,
-            ),
-            label: '通讯录',
-          ),
-          BottomNavigationBarItem(
-            icon: SvgPicture.asset(
-              'assets/images/mine.svg',
-              colorFilter: ColorFilter.mode(Colors.grey, BlendMode.srcIn),
-              width: 24,
-              height: 24,
-            ),
-            activeIcon: SvgPicture.asset(
-              'assets/images/mine.svg',
-              colorFilter: ColorFilter.mode(Colors.green, BlendMode.srcIn),
-              width: 24,
-              height: 24,
-            ),
-            label: '我的',
-          ),
-        ],
       ),
     );
   }

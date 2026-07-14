@@ -1,11 +1,103 @@
 import 'package:chat_demo/import.dart';
 import 'package:tencent_cloud_chat_sdk/enum/image_types.dart';
 
+class _SoundPlayHelper {
+  static final player = AudioPlayer();
+  static final playingId = ValueNotifier<String?>(null);
+  static var _listenerAttached = false;
+
+  static void _ensureListener() {
+    if (_listenerAttached) return;
+    _listenerAttached = true;
+    player.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        playingId.value = null;
+      }
+    });
+  }
+
+  static Future<void> toggle(String msgId, String? path) async {
+    if (path == null || path.isEmpty) return;
+    _ensureListener();
+    if (playingId.value == msgId) {
+      await player.stop();
+      playingId.value = null;
+      return;
+    }
+    await player.stop();
+    playingId.value = msgId;
+    if (path.startsWith('http')) {
+      await player.setUrl(path);
+    } else {
+      await player.setFilePath(path);
+    }
+    await player.play();
+  }
+}
+
+class _SoundBubble extends StatelessWidget {
+  final V2TimMessage message;
+  final bool isSelf;
+
+  const _SoundBubble({required this.message, required this.isSelf});
+
+  String? get _soundPath {
+    final path = message.soundElem?.path;
+    if (path != null && path.isNotEmpty) return path;
+    final url = message.soundElem?.url;
+    if (url == null || url.isEmpty) return null;
+    return url.startsWith('http') ? url : BASE_URL + url;
+  }
+
+  String get _msgId => message.msgID ?? message.id ?? message.timestamp.toString();
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = message.soundElem?.duration ?? 0;
+    return ValueListenableBuilder<String?>(
+      valueListenable: _SoundPlayHelper.playingId,
+      builder: (context, playingId, _) {
+        final isPlaying = playingId == _msgId;
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelf ? Colors.green : Colors.white,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isPlaying ? Icons.stop_circle_outlined : Icons.mic,
+                size: 20,
+                color: isSelf ? Colors.white : Colors.black54,
+              ),
+              SizedBox(width: 8),
+              Text(
+                '$duration"',
+                style: isSelf
+                    ? FontStyleUtils.whiteBody
+                    : FontStyleUtils.blackBody,
+              ),
+            ],
+          ),
+        ).withOnTap(() => _SoundPlayHelper.toggle(_msgId, _soundPath));
+      },
+    );
+  }
+}
+
 class ChatHistoryUtil extends StatelessWidget {
   final V2TimMessage message;
   final bool? isSelf;
+  final bool isGroup;
 
-  const ChatHistoryUtil({super.key, required this.message, this.isSelf});
+  const ChatHistoryUtil({
+    super.key,
+    required this.message,
+    this.isSelf,
+    this.isGroup = false,
+  });
 
   bool get _isSelf => isSelf ?? message.sender == UserPro.userId;
 
@@ -24,8 +116,33 @@ class ChatHistoryUtil extends StatelessWidget {
     jumpPage(context, ImagePreviewPage(imageUrl: url, isVideo: isVideo));
   }
 
+  String get _senderName {
+    if (_isSelf) return UserPro.meModel?.nickname ?? '';
+    final remark = message.friendRemark;
+    if (remark != null && remark.isNotEmpty) return remark;
+    final nameCard = message.nameCard;
+    if (nameCard != null && nameCard.isNotEmpty) return nameCard;
+    final nick = message.nickName;
+    if (nick != null && nick.isNotEmpty) return nick;
+    for (final friend in UserPro.friendList) {
+      if (friend.imUserId == message.sender) return friend.name;
+    }
+    return message.sender ?? '';
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (message.elemType == MessageElemType.V2TIM_ELEM_TYPE_GROUP_TIPS) {
+      final text = ChatUtil.groupTipsPreview(message);
+      if (text.isEmpty) return SizedBox.shrink();
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Center(
+          child: Text(text, style: FontStyleUtils.graySmallBody),
+        ),
+      );
+    }
+
     final content = _buildContent(context);
     if (content == null) return SizedBox.shrink();
 
@@ -36,6 +153,21 @@ class ChatHistoryUtil extends StatelessWidget {
       height: 48,
     ).withOnTap(() => _previewImage(context, avatarUrl));
 
+    final messageBody = isGroup
+        ? Column(
+            crossAxisAlignment: _isSelf
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              if (_senderName.isNotEmpty) ...[
+                Text(_senderName, style: FontStyleUtils.graySmallBody),
+                SizedBox(height: 4),
+              ],
+              content,
+            ],
+          )
+        : content;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
@@ -44,8 +176,8 @@ class ChatHistoryUtil extends StatelessWidget {
             : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: _isSelf
-            ? [Flexible(child: content), SizedBox(width: 8), avatar]
-            : [avatar, SizedBox(width: 8), Flexible(child: content)],
+            ? [Flexible(child: messageBody), SizedBox(width: 8), avatar]
+            : [avatar, SizedBox(width: 8), Flexible(child: messageBody)],
       ),
     );
   }
@@ -57,10 +189,7 @@ class ChatHistoryUtil extends StatelessWidget {
       case MessageElemType.V2TIM_ELEM_TYPE_IMAGE:
         return _imageContent(context);
       case MessageElemType.V2TIM_ELEM_TYPE_SOUND:
-        return _mediaBubble(
-          icon: Icons.mic,
-          text: '${message.soundElem?.duration ?? 0}"',
-        );
+        return _SoundBubble(message: message, isSelf: _isSelf);
       case MessageElemType.V2TIM_ELEM_TYPE_VIDEO:
         return _videoBubble(
           context,
@@ -72,6 +201,7 @@ class ChatHistoryUtil extends StatelessWidget {
         return _mediaBubble(
           icon: Icons.insert_drive_file,
           text: message.fileElem?.fileName ?? '文件',
+          onTap: () {},
         );
       case MessageElemType.V2TIM_ELEM_TYPE_FACE:
         return _faceContent();
@@ -139,7 +269,11 @@ class ChatHistoryUtil extends StatelessWidget {
     );
   }
 
-  Widget _mediaBubble({required IconData icon, required String text}) {
+  Widget _mediaBubble({
+    required IconData icon,
+    required String text,
+    required VoidCallback onTap,
+  }) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -161,7 +295,7 @@ class ChatHistoryUtil extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ).withOnTap(onTap);
   }
 
   Widget _faceContent() {

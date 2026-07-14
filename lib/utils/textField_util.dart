@@ -11,6 +11,7 @@ class TextFieldUtils extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final int? minLines;
   final int? maxLines;
+  final bool isField;
   const TextFieldUtils({
     super.key,
     required this.controller,
@@ -23,6 +24,7 @@ class TextFieldUtils extends StatelessWidget {
     this.onSubmitted,
     this.minLines = 1,
     this.maxLines = 1,
+    this.isField = false,
   });
 
   @override
@@ -40,7 +42,14 @@ class TextFieldUtils extends StatelessWidget {
       decoration: InputDecoration(
         isDense: true,
         hintText: hintText,
-        border: InputBorder.none,
+        border: isField
+            ? UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              )
+            : InputBorder.none,
+        focusedBorder: isField
+            ? UnderlineInputBorder(borderSide: BorderSide(color: Colors.black))
+            : InputBorder.none,
         hintStyle: hintStyle,
       ),
     );
