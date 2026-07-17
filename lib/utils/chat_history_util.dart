@@ -136,7 +136,7 @@ class _VideoBubbleState extends State<_VideoBubble> {
       setState(() {
         _coverUrl = cover;
         _playUrl = play;
-      });
+      }); 
     }
     if (cover.isNotEmpty && play.isNotEmpty) return;
     if (!mounted) return;
@@ -286,12 +286,15 @@ class ChatHistoryUtil extends StatelessWidget {
     if (message.elemType == MessageElemType.V2TIM_ELEM_TYPE_GROUP_TIPS) {
       final text = ChatUtil.groupTipsPreview(message);
       if (text.isEmpty) return SizedBox.shrink();
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Center(
-          child: Text(text, style: FontStyleUtils.graySmallBody),
-        ),
-      );
+      return _tipsText(text);
+    }
+
+    // 后端激活文字（邀请/退群文案）按 tips 灰条展示，避免普通气泡
+    if (message.elemType == MessageElemType.V2TIM_ELEM_TYPE_TEXT) {
+      final text = message.textElem?.text?.trim() ?? '';
+      if (ChatUtil.isGroupSystemText(text)) {
+        return _tipsText(text);
+      }
     }
 
     final content = _buildContent(context);
@@ -329,6 +332,15 @@ class ChatHistoryUtil extends StatelessWidget {
         children: _isSelf
             ? [Flexible(child: messageBody), SizedBox(width: 8), avatar]
             : [avatar, SizedBox(width: 8), Flexible(child: messageBody)],
+      ),
+    );
+  }
+
+  Widget _tipsText(String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Center(
+        child: Text(text, style: FontStyleUtils.graySmallBody),
       ),
     );
   }

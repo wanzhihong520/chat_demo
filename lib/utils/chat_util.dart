@@ -1,7 +1,14 @@
 import 'package:chat_demo/import.dart';
 import 'package:tencent_cloud_chat_sdk/enum/V2TimConversationListener.dart';
+import 'package:tencent_cloud_chat_sdk/enum/V2TimGroupListener.dart';
+import 'package:tencent_cloud_chat_sdk/enum/group_add_opt_enum.dart';
+import 'package:tencent_cloud_chat_sdk/enum/group_member_filter_enum.dart';
+import 'package:tencent_cloud_chat_sdk/enum/group_member_role_enum.dart';
 import 'package:tencent_cloud_chat_sdk/enum/group_tips_elem_type.dart';
+import 'package:tencent_cloud_chat_sdk/enum/group_type.dart';
 import 'package:tencent_cloud_chat_sdk/models/v2_tim_conversation.dart';
+import 'package:tencent_cloud_chat_sdk/models/v2_tim_group_member.dart';
+import 'package:tencent_cloud_chat_sdk/models/v2_tim_group_member_full_info.dart';
 import 'package:tencent_cloud_chat_sdk/models/v2_tim_group_member_info.dart';
 import 'package:video_compress/video_compress.dart';
 
@@ -14,6 +21,7 @@ class ChatUtil {
   static final notificationListNotifier =
       ValueNotifier<List<NotificationModel>>([]);
   static final notificationUnreadNotifier = ValueNotifier<int>(0);
+
   /// 通讯录 Tab 总未读：好友申请 + 通知
   static final addressUnreadNotifier = ValueNotifier<int>(0);
   static final unreadCountNotifier = ValueNotifier<int>(0);
@@ -21,14 +29,19 @@ class ChatUtil {
 
   static V2TimAdvancedMsgListener? _msgListener;
   static V2TimConversationListener? _conversationListener;
+  static V2TimGroupListener? _groupListener;
   static void Function(V2TimMessage message)? onNewMessage;
+
   /// 被删好友 / 群解散时，通知当前聊天页退出
   static void Function(String type, Map<String, dynamic> data)?
-      onSessionInvalidated;
+  onSessionInvalidated;
+
+  /// 邀请/退群 tips 可能已写入 IM，通知当前群聊页重拉历史
+  static void Function(String imGroupId)? onGroupHistoryNeedRefresh;
 
   static void _refreshAddressUnread() {
-    addressUnreadNotifier.value = friendRequestUnreadNotifier.value +
-        notificationUnreadNotifier.value;
+    addressUnreadNotifier.value =
+        friendRequestUnreadNotifier.value + notificationUnreadNotifier.value;
   }
 
   /// 拉取会话列表并更新本地
@@ -237,7 +250,7 @@ class ChatUtil {
 
   static String groupTipsPreview(V2TimMessage message) {
     final tips = message.groupTipsElem;
-    if (tips == null) return '群聊通知';
+    if (tips == null) return '';
 
     final op = _groupMemberName(tips.opMember);
     final members = _groupMemberNames(tips.memberList);
@@ -250,6 +263,7 @@ class ChatUtil {
         if (members.isNotEmpty) return '$members 加入了群聊';
         return '有新成员加入群聊';
       case GroupTipsElemType.V2TIM_GROUP_TIPS_TYPE_JOIN:
+        // 建群带人时常见 JOIN，按邀请/入群展示
         if (members.isNotEmpty) return '$members 加入了群聊';
         if (op.isNotEmpty) return '$op 加入了群聊';
         return '有新成员加入群聊';
@@ -257,39 +271,54 @@ class ChatUtil {
         if (members.isNotEmpty) return '$members 退出了群聊';
         if (op.isNotEmpty) return '$op 退出了群聊';
         return '有成员退出群聊';
-      case GroupTipsElemType.V2TIM_GROUP_TIPS_TYPE_KICKED:
-        if (op.isNotEmpty && members.isNotEmpty) {
-          return '$op 将 $members 移出了群聊';
-        }
-        return '有成员被移出群聊';
-      case GroupTipsElemType.V2TIM_GROUP_TIPS_TYPE_SET_ADMIN:
-        if (op.isNotEmpty && members.isNotEmpty) {
-          return '$op 将 $members 设为管理员';
-        }
-        return '群管理员已变更';
-      case GroupTipsElemType.V2TIM_GROUP_TIPS_TYPE_CANCEL_ADMIN:
-        if (op.isNotEmpty && members.isNotEmpty) {
-          return '$op 取消了 $members 的管理员';
-        }
-        return '群管理员已变更';
-      case GroupTipsElemType.V2TIM_GROUP_TIPS_TYPE_GROUP_INFO_CHANGE:
-        return '群资料已更新';
       default:
-        return '群聊通知';
+        return '';
     }
+  }
+
+  /// 后端发的激活/邀请/退群文案，聊天页按 tips 灰条展示
+  static bool isGroupSystemText(String text) {
+    final t = text.trim();
+    if (t.isEmpty) return false;
+    if (t == '发起了群聊' || t == '有新成员加入群聊') return true;
+    if (t.contains('邀请') && t.contains('加入')) return true;
+    if (t.contains('退出了群聊') || t.contains('退出群聊')) return true;
+    return false;
+  }
+
+  static bool _isInviteOrQuitTips(int? type) {
+    return type == GroupTipsElemType.V2TIM_GROUP_TIPS_TYPE_INVITE ||
+        type == GroupTipsElemType.V2TIM_GROUP_TIPS_TYPE_JOIN ||
+        type == GroupTipsElemType.V2TIM_GROUP_TIPS_TYPE_QUIT;
   }
 
   static Future<void> _handleGroupTips(V2TimMessage message) async {
     final groupId = message.groupID ?? '';
     if (groupId.isEmpty) return;
 
-    await syncGroupLastMessage(imGroupId: groupId, message: message);
-
     final type = message.groupTipsElem?.type;
-    if (type == GroupTipsElemType.V2TIM_GROUP_TIPS_TYPE_INVITE ||
-        type == GroupTipsElemType.V2TIM_GROUP_TIPS_TYPE_JOIN) {
+    if (!_isInviteOrQuitTips(type)) return;
+
+    await syncGroupLastMessage(imGroupId: groupId, message: message);
+    await fetchChatList();
+  }
+
+  /// 邀请者自己常收不到 tips 推送：主动拉历史同步会话，并通知聊天页刷新
+  static Future<void> refreshGroupSessionAfterTips(String imGroupId) async {
+    if (imGroupId.isEmpty) return;
+    // 等 IM 落库；失败再补拉一次
+    await Future.delayed(const Duration(milliseconds: 800));
+    var list = await fetchHistory(groupID: imGroupId, count: 20);
+    if (list.isEmpty) {
+      await Future.delayed(const Duration(milliseconds: 800));
+      list = await fetchHistory(groupID: imGroupId, count: 20);
+    }
+    if (list.isNotEmpty) {
+      await syncGroupLastMessage(imGroupId: imGroupId, message: list.last);
+    } else {
       await fetchChatList();
     }
+    onGroupHistoryNeedRefresh?.call(imGroupId);
   }
 
   /// 拉取历史消息（单聊传 userID，群聊传 groupID）
@@ -457,7 +486,9 @@ class ChatUtil {
   /// 清空单聊聊天记录
   static Future<bool> clearFriendMessages(String imUserId) async {
     if (imUserId.isEmpty) return false;
-    final response = await Api().post('/api/friends/$imUserId/clear-messages');
+    final response = await Api().post(
+      '/api/friends/${_enc(imUserId)}/clear-messages',
+    );
     if (response.statusCode != 200 || response.data is! Map) return false;
     final body = response.data as Map<String, dynamic>;
     if (body['code'] != 200) return false;
@@ -476,7 +507,7 @@ class ChatUtil {
   }) async {
     if (groupId.isEmpty) return false;
     final response = await Api().post(
-      '/api/groups/$groupId/clear-messages',
+      '/api/groups/${_enc(groupId)}/clear-messages',
       data: {'selfOnly': selfOnly},
     );
     if (response.statusCode != 200 || response.data is! Map) return false;
@@ -491,28 +522,135 @@ class ChatUtil {
     return true;
   }
 
-  /// 退出群聊（非群主）
+  /// 群 ID：后端与 IM 相同，都是 SDK 的 groupID
+  static String _groupId(String groupId, [String? imGroupId]) {
+    if (imGroupId != null && imGroupId.isNotEmpty) return imGroupId;
+    return groupId;
+  }
+
+  /// URL 路径参数编码（SDK groupID 常含特殊字符）
+  static String _enc(String id) => Uri.encodeComponent(id);
+
+  /// 退出群聊：SDK quitGroup → DELETE /api/groups/:groupId/members/:imUserId
   static Future<bool> quitGroup({
     required String groupId,
+    String? imGroupId,
     required String imUserId,
   }) async {
-    if (groupId.isEmpty || imUserId.isEmpty) return false;
-    final response =
-        await Api().delete('/api/groups/$groupId/members/$imUserId');
+    final gid = _groupId(groupId, imGroupId);
+    if (gid.isEmpty || imUserId.isEmpty) return false;
+
+    final imRes = await TencentImSDKPlugin.v2TIMManager.quitGroup(groupID: gid);
+    if (imRes.code != 0) {
+      debugPrint('quitGroup IM failed: ${imRes.code} ${imRes.desc}');
+      return false;
+    }
+
+    final response = await Api().delete(
+      '/api/groups/${_enc(gid)}/members/${_enc(imUserId)}',
+    );
     if (response.statusCode != 200 || response.data is! Map) return false;
     final body = response.data as Map<String, dynamic>;
     if (body['code'] != 200) return false;
+    await deleteImConversation('group_$gid');
     await fetchChatList();
     return true;
   }
 
-  /// 解散群聊（仅群主）
-  static Future<bool> dissolveGroup(String groupId) async {
-    if (groupId.isEmpty) return false;
-    final response = await Api().delete('/api/groups/$groupId');
+  /// 踢人：SDK kickGroupMember → DELETE /api/groups/:groupId/members/:imUserId
+  static Future<bool> kickGroupMember({
+    required String groupId,
+    String? imGroupId,
+    required String memberImUserId,
+  }) async {
+    final gid = _groupId(groupId, imGroupId);
+    if (gid.isEmpty || memberImUserId.isEmpty) return false;
+
+    final imRes = await TencentImSDKPlugin.v2TIMManager
+        .getGroupManager()
+        .kickGroupMember(
+          groupID: gid,
+          memberList: [memberImUserId],
+          reason: '',
+        );
+    if (imRes.code != 0) {
+      debugPrint('kickGroupMember failed: ${imRes.code} ${imRes.desc}');
+      return false;
+    }
+
+    final response = await Api().delete(
+      '/api/groups/${_enc(gid)}/members/${_enc(memberImUserId)}',
+    );
+    if (response.statusCode != 200 || response.data is! Map) return false;
+    final body = response.data as Map<String, dynamic>;
+    return body['code'] == 200;
+  }
+
+  /// Work 群客户端无法 dismiss：踢光其他人后自己 quit
+  static Future<bool> _dissolveWorkGroupFallback(String gid) async {
+    final listRes = await TencentImSDKPlugin.v2TIMManager
+        .getGroupManager()
+        .getGroupMemberList(
+          groupID: gid,
+          filter: GroupMemberFilterTypeEnum.V2TIM_GROUP_MEMBER_FILTER_ALL,
+          nextSeq: '0',
+          count: 100,
+        );
+    if (listRes.code != 0) {
+      debugPrint('getGroupMemberList failed: ${listRes.code} ${listRes.desc}');
+      return false;
+    }
+    final myId = UserPro.userId;
+    final others = (listRes.data?.memberInfoList ?? [])
+        .whereType<V2TimGroupMemberFullInfo>()
+        .map((m) => m.userID)
+        .whereType<String>()
+        .where((id) => id.isNotEmpty && id != myId)
+        .toList();
+    if (others.isNotEmpty) {
+      final kickRes = await TencentImSDKPlugin.v2TIMManager
+          .getGroupManager()
+          .kickGroupMember(groupID: gid, memberList: others, reason: '群聊已解散');
+      if (kickRes.code != 0) {
+        debugPrint('kickGroupMember failed: ${kickRes.code} ${kickRes.desc}');
+        return false;
+      }
+    }
+    final quitRes = await TencentImSDKPlugin.v2TIMManager.quitGroup(
+      groupID: gid,
+    );
+    if (quitRes.code != 0) {
+      debugPrint('quit after kick failed: ${quitRes.code} ${quitRes.desc}');
+      return false;
+    }
+    return true;
+  }
+
+  /// 解散群聊：SDK dismissGroup → DELETE /api/groups/:groupId
+  static Future<bool> dissolveGroup({
+    required String groupId,
+    String? imGroupId,
+  }) async {
+    final gid = _groupId(groupId, imGroupId);
+    if (gid.isEmpty) return false;
+
+    final dismissRes = await TencentImSDKPlugin.v2TIMManager.dismissGroup(
+      groupID: gid,
+    );
+    if (dismissRes.code != 0) {
+      // Work 不支持客户端解散，降级踢人+退出
+      debugPrint(
+        'dismissGroup failed, fallback: ${dismissRes.code} ${dismissRes.desc}',
+      );
+      final ok = await _dissolveWorkGroupFallback(gid);
+      if (!ok) return false;
+    }
+
+    final response = await Api().delete('/api/groups/${_enc(gid)}');
     if (response.statusCode != 200 || response.data is! Map) return false;
     final body = response.data as Map<String, dynamic>;
     if (body['code'] != 200) return false;
+    await deleteImConversation('group_$gid');
     await fetchChatList();
     return true;
   }
@@ -520,7 +658,7 @@ class ChatUtil {
   /// 删除好友
   static Future<bool> deleteFriend(String imUserId) async {
     if (imUserId.isEmpty) return false;
-    final response = await Api().delete('/api/friends/$imUserId');
+    final response = await Api().delete('/api/friends/${_enc(imUserId)}');
     if (response.statusCode != 200 || response.data is! Map) return false;
     final body = response.data as Map<String, dynamic>;
     if (body['code'] != 200) return false;
@@ -541,7 +679,7 @@ class ChatUtil {
   /// 获取群详情
   static Future<GroupDetailModel?> fetchGroupDetail(String groupId) async {
     if (groupId.isEmpty) return null;
-    final response = await Api().get('/api/groups/$groupId');
+    final response = await Api().get('/api/groups/${_enc(groupId)}');
     if (response.statusCode != 200 || response.data is! Map) return null;
     final body = response.data as Map<String, dynamic>;
     if (body['code'] != 200 || body['data'] is! Map) return null;
@@ -555,7 +693,7 @@ class ChatUtil {
   }) async {
     if (groupId.isEmpty || name.isEmpty) return null;
     final response = await Api().patch(
-      '/api/groups/$groupId',
+      '/api/groups/${_enc(groupId)}',
       data: {'name': name},
     );
     if (response.statusCode != 200 || response.data is! Map) return null;
@@ -575,33 +713,138 @@ class ChatUtil {
     return base;
   }
 
-  /// 邀请群成员
+  /// 邀请：SDK inviteUserToGroup → POST members → 等后端文字/ tip，必要时前端发消息激活
   static Future<bool> inviteGroupMembers({
     required String groupId,
+    String? imGroupId,
     required List<String> memberImUserIds,
   }) async {
-    if (groupId.isEmpty || memberImUserIds.isEmpty) return false;
+    final gid = _groupId(groupId, imGroupId);
+    if (gid.isEmpty || memberImUserIds.isEmpty) return false;
+
+    final imRes = await TencentImSDKPlugin.v2TIMManager
+        .getGroupManager()
+        .inviteUserToGroup(groupID: gid, userList: memberImUserIds);
+    if (imRes.code != 0) {
+      debugPrint('inviteUserToGroup failed: ${imRes.code} ${imRes.desc}');
+      return false;
+    }
+
     final response = await Api().post(
-      '/api/groups/$groupId/members',
+      '/api/groups/${_enc(gid)}/members',
       data: {'memberImUserIds': memberImUserIds},
     );
     if (response.statusCode != 200 || response.data is! Map) return false;
     final body = response.data as Map<String, dynamic>;
-    return body['code'] == 200;
+    if (body['code'] != 200) return false;
+
+    await ensureWorkGroupActivated(gid, fallbackText: '有新成员加入群聊');
+    return true;
   }
 
-  /// 创建群聊
+  /// 创建：SDK createGroup(Work)+成员 → POST /api/groups → 激活 → 进聊天页拉历史
   static Future<CreateGroupResult?> createGroup({
     required List<String> memberImUserIds,
   }) async {
+    final memberList = memberImUserIds
+        .map(
+          (id) => V2TimGroupMember(
+            userID: id,
+            role: GroupMemberRoleTypeEnum.V2TIM_GROUP_MEMBER_ROLE_MEMBER,
+          ),
+        )
+        .toList();
+
+    // 非静默：memberList 直接拉人进群，会产生系统 tip
+    final imRes = await TencentImSDKPlugin.v2TIMManager
+        .getGroupManager()
+        .createGroup(
+          groupType: GroupType.Work,
+          groupName: '群聊',
+          notification: '',
+          introduction: '',
+          faceUrl: '',
+          isAllMuted: false,
+          isSupportTopic: false,
+          addOpt: GroupAddOptTypeEnum.V2TIM_GROUP_ADD_FORBID,
+          memberList: memberList,
+        );
+    if (imRes.code != 0 || (imRes.data ?? '').isEmpty) {
+      debugPrint('createGroup IM failed: ${imRes.code} ${imRes.desc}');
+      return null;
+    }
+    final sdkGroupId = imRes.data!;
+
     final response = await Api().post(
       '/api/groups',
-      data: {'memberImUserIds': memberImUserIds},
+      data: {'imGroupId': sdkGroupId, 'memberImUserIds': memberImUserIds},
     );
-    if (response.statusCode != 200 || response.data is! Map) return null;
+    if (response.statusCode != 200 || response.data is! Map) {
+      await TencentImSDKPlugin.v2TIMManager.quitGroup(groupID: sdkGroupId);
+      return null;
+    }
     final body = response.data as Map<String, dynamic>;
-    if (body['code'] != 200 || body['data'] is! Map) return null;
-    return CreateGroupResult.fromJson(body['data'] as Map<String, dynamic>);
+    if (body['code'] != 200 || body['data'] is! Map) {
+      await TencentImSDKPlugin.v2TIMManager.quitGroup(groupID: sdkGroupId);
+      return null;
+    }
+    final parsed = CreateGroupResult.fromJson(
+      body['data'] as Map<String, dynamic>,
+    );
+    final result = CreateGroupResult(
+      groupId: sdkGroupId,
+      imGroupId: sdkGroupId,
+      name: parsed.name.isNotEmpty ? parsed.name : '群聊',
+      avatarUrl: parsed.avatarUrl,
+      memberCount: parsed.memberCount > 0
+          ? parsed.memberCount
+          : memberImUserIds.length + 1,
+    );
+
+    // 后端会发激活文字；没有 tip/文字时前端补发，再刷新
+    await ensureWorkGroupActivated(sdkGroupId, fallbackText: '发起了群聊');
+    return result;
+  }
+
+  /// Work 群：先等后端文字/系统 tip；都没有则当前用户发一条群文本激活会话
+  static Future<void> ensureWorkGroupActivated(
+    String imGroupId, {
+    String fallbackText = '发起了群聊',
+  }) async {
+    if (imGroupId.isEmpty) return;
+
+    await Future.delayed(const Duration(milliseconds: 600));
+    var list = await fetchHistory(groupID: imGroupId, count: 20);
+    if (!_historyHasTipOrText(list)) {
+      await Future.delayed(const Duration(milliseconds: 400));
+      list = await fetchHistory(groupID: imGroupId, count: 20);
+    }
+    if (!_historyHasTipOrText(list)) {
+      final sent = await sendText(fallbackText, groupID: imGroupId);
+      if (sent != null) {
+        await syncGroupLastMessage(imGroupId: imGroupId, message: sent);
+      } else {
+        await fetchChatList();
+      }
+    } else {
+      await syncGroupLastMessage(imGroupId: imGroupId, message: list.last);
+    }
+    // 立刻通知聊天页重拉，不再额外长等
+    onGroupHistoryNeedRefresh?.call(imGroupId);
+  }
+
+  static bool _historyHasTipOrText(List<V2TimMessage> list) {
+    for (final m in list) {
+      if (m.elemType == MessageElemType.V2TIM_ELEM_TYPE_GROUP_TIPS) {
+        if (groupTipsPreview(m).isNotEmpty) return true;
+        continue;
+      }
+      if (m.elemType == MessageElemType.V2TIM_ELEM_TYPE_TEXT) {
+        final t = m.textElem?.text?.trim() ?? '';
+        if (t.isNotEmpty) return true;
+      }
+    }
+    return false;
   }
 
   /// 同步群聊最后一条消息到后端，并刷新会话列表
@@ -612,7 +855,7 @@ class ChatUtil {
     final preview = messagePreview(message);
     if (preview.isEmpty || imGroupId.isEmpty) return;
     final response = await Api().post(
-      '/api/groups/$imGroupId/last-message',
+      '/api/groups/${_enc(imGroupId)}/last-message',
       data: {'content': preview, 'time': DateTime.now().millisecondsSinceEpoch},
     );
     if (response.statusCode == 200) {
@@ -628,7 +871,7 @@ class ChatUtil {
     final preview = messagePreview(message);
     if (preview.isEmpty) return;
     final response = await Api().post(
-      '/api/friends/$imUserId/last-message',
+      '/api/friends/${_enc(imUserId)}/last-message',
       data: {'content': preview, 'time': DateTime.now().millisecondsSinceEpoch},
     );
     if (response.statusCode == 200) {
@@ -672,8 +915,7 @@ class ChatUtil {
           onSessionInvalidated?.call('friend_deleted', payload);
           break;
         case 'group_dissolved':
-          final groupId =
-              '${payload['imGroupId'] ?? payload['groupId'] ?? ''}';
+          final groupId = '${payload['imGroupId'] ?? payload['groupId'] ?? ''}';
           if (groupId.isNotEmpty) {
             deleteImConversation('group_$groupId');
           }
@@ -716,16 +958,42 @@ class ChatUtil {
     TencentImSDKPlugin.v2TIMManager.getMessageManager().addAdvancedMsgListener(
       listener: _msgListener!,
     );
+    _initGroupListener();
+  }
+
+  /// 群成员变更回调：补拉历史，避免 tips 推送丢失
+  static void _initGroupListener() {
+    if (_groupListener != null) return;
+    _groupListener = V2TimGroupListener(
+      onMemberInvited: (groupID, opUser, memberList) {
+        refreshGroupSessionAfterTips(groupID);
+      },
+      onMemberEnter: (groupID, memberList) {
+        refreshGroupSessionAfterTips(groupID);
+      },
+      onMemberLeave: (groupID, member) {
+        refreshGroupSessionAfterTips(groupID);
+      },
+    );
+    TencentImSDKPlugin.v2TIMManager.addGroupListener(listener: _groupListener!);
   }
 
   static void removeGlobalMsgListener() {
-    if (_msgListener == null) return;
-    TencentImSDKPlugin.v2TIMManager
-        .getMessageManager()
-        .removeAdvancedMsgListener(listener: _msgListener!);
-    _msgListener = null;
+    if (_msgListener != null) {
+      TencentImSDKPlugin.v2TIMManager
+          .getMessageManager()
+          .removeAdvancedMsgListener(listener: _msgListener!);
+      _msgListener = null;
+    }
+    if (_groupListener != null) {
+      TencentImSDKPlugin.v2TIMManager.removeGroupListener(
+        listener: _groupListener!,
+      );
+      _groupListener = null;
+    }
     onNewMessage = null;
     onSessionInvalidated = null;
+    onGroupHistoryNeedRefresh = null;
   }
 
   static Future<void> fetchTotalUnreadCount() async {
@@ -764,7 +1032,5 @@ class ChatUtil {
     conversationUnreadNotifier.value = {};
   }
 
-  static Future<void> deleteMessage() async {
-    
-  }
+  static Future<void> deleteMessage() async {}
 }

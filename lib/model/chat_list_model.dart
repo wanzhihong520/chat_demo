@@ -45,13 +45,17 @@ class ChatModel {
   });
 
   factory ChatModel.fromJson(Map<String, dynamic> json) {
+    final isGroup = json['isGroup'] ?? false;
+    // 群：groupId / imGroupId 均为 SDK groupID，缺一则互填
+    final groupId = json['groupId'] ?? json['imGroupId'] ?? json['id'];
+    final imGroupId = json['imGroupId'] ?? json['groupId'] ?? json['id'];
     return ChatModel(
       id: json['id'] ?? '',
       isAi: json['isAi'] ?? false,
-      isGroup: json['isGroup'] ?? false,
+      isGroup: isGroup,
       imUserId: json['imUserId'],
-      groupId: json['groupId'],
-      imGroupId: json['imGroupId'],
+      groupId: isGroup ? groupId : json['groupId'],
+      imGroupId: isGroup ? imGroupId : json['imGroupId'],
       aiId: json['aiId'] ?? '',
       avatarUrl: json['avatarUrl'] ?? '',
       name: json['name'] ?? '',

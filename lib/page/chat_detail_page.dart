@@ -67,6 +67,22 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _inputController.addListener(() => setState(() {}));
     ChatUtil.onNewMessage = _handleNewMessage;
     ChatUtil.onSessionInvalidated = _onSessionInvalidated;
+    ChatUtil.onGroupHistoryNeedRefresh = _onGroupHistoryNeedRefresh;
+  }
+
+  void _onGroupHistoryNeedRefresh(String imGroupId) {
+    if (!widget.isGroup || imGroupId != widget._imGroupId) return;
+    _reloadHistory();
+  }
+
+  Future<void> _reloadHistory() async {
+    final list = await ChatUtil.fetchHistory(
+      userID: widget.isGroup ? null : widget.receiver,
+      groupID: widget.isGroup ? widget._imGroupId : null,
+    );
+    if (!mounted) return;
+    setState(() => _messageList = list);
+    _scrollToBottom();
   }
 
   void _markRead() {
@@ -83,8 +99,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       final id =
           '${data['fromImUserId'] ?? data['imUserId'] ?? data['userID'] ?? ''}';
       if (id.isEmpty || id != widget.receiver) return;
-      showToast('好友关系已解除');
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      _exitInvalidSession('好友关系已解除');
       return;
     }
     if (type == 'group_dissolved') {
@@ -95,9 +110,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           (gid != widget._imGroupId && gid != widget.groupId)) {
         return;
       }
-      showToast('群聊已解散');
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      _exitInvalidSession('群聊已解散');
     }
+  }
+
+  void _exitInvalidSession(String toast) {
+    if (!mounted) return;
+    if (ChatUtil.onSessionInvalidated == _onSessionInvalidated) {
+      ChatUtil.onSessionInvalidated = null;
+    }
+    showToast(toast);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final nav = Navigator.of(context);
+      while (nav.canPop()) {
+        nav.pop();
+      }
+    });
   }
 
   @override
@@ -107,6 +136,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     }
     if (ChatUtil.onSessionInvalidated == _onSessionInvalidated) {
       ChatUtil.onSessionInvalidated = null;
+    }
+    if (ChatUtil.onGroupHistoryNeedRefresh == _onGroupHistoryNeedRefresh) {
+      ChatUtil.onGroupHistoryNeedRefresh = null;
     }
     _markRead();
     _inputController.dispose();
@@ -309,11 +341,18 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
     if (!mounted) return;
     if (result == 'deleted') {
+      // 避免与自定义消息里的退出导航并发，导致黑屏
+      if (ChatUtil.onSessionInvalidated == _onSessionInvalidated) {
+        ChatUtil.onSessionInvalidated = null;
+      }
       backPage(context);
       return;
     }
     if (result == true) {
       setState(() => _messageList = []);
+    } else if (widget.isGroup) {
+      // 邀请等操作产生的 tips，从群信息返回后补拉历史
+      await _reloadHistory();
     }
     if (widget.isGroup) await _loadGroupDetail();
   }

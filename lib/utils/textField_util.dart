@@ -12,6 +12,7 @@ class TextFieldUtils extends StatelessWidget {
   final int? minLines;
   final int? maxLines;
   final bool isField;
+  final bool obscureText;
   const TextFieldUtils({
     super.key,
     required this.controller,
@@ -25,6 +26,7 @@ class TextFieldUtils extends StatelessWidget {
     this.minLines = 1,
     this.maxLines = 1,
     this.isField = false,
+    this.obscureText = false,
   });
 
   @override
@@ -38,6 +40,7 @@ class TextFieldUtils extends StatelessWidget {
       textInputAction: textInputAction,
       controller: controller,
       cursorColor: Colors.black,
+      obscureText: obscureText,
       onSubmitted: onSubmitted,
       decoration: InputDecoration(
         isDense: true,

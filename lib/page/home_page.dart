@@ -74,11 +74,13 @@ class _HomePageState extends State<HomePage> {
                       if (chat.isAi) {
                         jumpPage(context, AichatDetailPage(aiId: chat.aiId));
                       } else if (chat.isGroup) {
+                        final gid =
+                            chat.imGroupId ?? chat.groupId ?? chat.id;
                         jumpPage(
                           context,
                           ChatDetailPage(
-                            groupId: chat.groupId ?? chat.id,
-                            imGroupId: chat.imGroupId ?? chat.id,
+                            groupId: gid,
+                            imGroupId: gid,
                             title: chat.name,
                             avatarUrl: chat.avatarUrl,
                           ),

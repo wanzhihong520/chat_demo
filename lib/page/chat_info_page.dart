@@ -33,7 +33,7 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
   }
 
   Future<void> _loadGroupDetail() async {
-    final id = widget.groupId ?? '';
+    final id = widget.imGroupId ?? widget.groupId ?? '';
     if (id.isEmpty) return;
     setState(() => _loading = true);
     final detail = await ChatUtil.fetchGroupDetail(id);
@@ -56,9 +56,8 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
 
   Future<void> _clearMessages(BuildContext context) async {
     if (widget.isGroup) {
-      final groupId = widget.groupId ?? '';
-      final imGroupId = widget.imGroupId ?? '';
-      if (groupId.isEmpty) return;
+      final gid = widget.imGroupId ?? widget.groupId ?? '';
+      if (gid.isEmpty) return;
 
       final confirmed = await ConfirmDialogUtil.show(
         context,
@@ -67,8 +66,8 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
       if (!confirmed || !context.mounted) return;
 
       final ok = await ChatUtil.clearGroupMessages(
-        groupId: groupId,
-        imGroupId: imGroupId,
+        groupId: gid,
+        imGroupId: gid,
       );
       if (!context.mounted) return;
       if (ok) {
@@ -99,7 +98,7 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
   }
 
   Future<void> _leaveGroup(BuildContext context) async {
-    final groupId = widget.groupId ?? '';
+    final groupId = widget.imGroupId ?? widget.groupId ?? '';
     if (groupId.isEmpty) return;
     if (_groupDetail == null) {
       showToast('加载中，请稍候');
@@ -114,10 +113,13 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
       );
       if (!confirmed || !context.mounted) return;
 
-      final ok = await ChatUtil.dissolveGroup(groupId);
+      final ok = await ChatUtil.dissolveGroup(
+        groupId: widget.imGroupId ?? groupId,
+      );
       if (!context.mounted) return;
       if (ok) {
         showToast('已解散');
+        ChatUtil.onSessionInvalidated = null;
         backPage(context, 'deleted');
       } else {
         showToast('解散失败');
@@ -135,10 +137,14 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
     );
     if (!confirmed || !context.mounted) return;
 
-    final ok = await ChatUtil.quitGroup(groupId: groupId, imUserId: imUserId);
+    final ok = await ChatUtil.quitGroup(
+      groupId: widget.imGroupId ?? groupId,
+      imUserId: imUserId,
+    );
     if (!context.mounted) return;
     if (ok) {
       showToast('已退出');
+      ChatUtil.onSessionInvalidated = null;
       backPage(context, 'deleted');
     } else {
       showToast('退出失败');
@@ -164,6 +170,7 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
     if (!context.mounted) return;
     if (ok) {
       showToast('已删除');
+      ChatUtil.onSessionInvalidated = null;
       backPage(context, 'deleted');
     } else {
       showToast('删除失败');
@@ -211,7 +218,7 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
   }
 
   Future<void> _openInviteMembers() async {
-    final groupId = widget.groupId ?? '';
+    final groupId = widget.imGroupId ?? widget.groupId ?? '';
     if (groupId.isEmpty) return;
 
     final excludeIds =
@@ -221,6 +228,7 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
       MaterialPageRoute(
         builder: (context) => CreateGroupPage(
           inviteGroupId: groupId,
+          inviteImGroupId: groupId,
           excludeImUserIds: excludeIds,
         ),
       ),

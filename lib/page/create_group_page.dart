@@ -3,11 +3,13 @@ import 'package:chat_demo/import.dart';
 
 class CreateGroupPage extends StatefulWidget {
   final String? inviteGroupId;
+  final String? inviteImGroupId;
   final Set<String> excludeImUserIds;
 
   const CreateGroupPage({
     super.key,
     this.inviteGroupId,
+    this.inviteImGroupId,
     this.excludeImUserIds = const {},
   });
 
@@ -76,8 +78,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     setState(() => _submitting = true);
 
     if (_isInvite) {
+      final gid = widget.inviteImGroupId ?? widget.inviteGroupId!;
       final ok = await ChatUtil.inviteGroupMembers(
-        groupId: widget.inviteGroupId!,
+        groupId: gid,
         memberImUserIds: _selectedIds.toList(),
       );
       if (!mounted) return;
@@ -105,7 +108,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     jumpReplacementPage(
       context,
       ChatDetailPage(
-        groupId: group.groupId,
+        groupId: group.imGroupId,
         imGroupId: group.imGroupId,
         title: group.name,
         avatarUrl: group.avatarUrl,

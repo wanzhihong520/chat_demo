@@ -40,8 +40,12 @@ class _GroupListPageState extends State<GroupListPage> {
         jumpPage(
           context,
           ChatDetailPage(
-            groupId: group.groupId,
-            imGroupId: group.imGroupId,
+            groupId: group.imGroupId.isNotEmpty
+                ? group.imGroupId
+                : group.groupId,
+            imGroupId: group.imGroupId.isNotEmpty
+                ? group.imGroupId
+                : group.groupId,
             title: group.name,
             avatarUrl: avatarUrl,
           ),

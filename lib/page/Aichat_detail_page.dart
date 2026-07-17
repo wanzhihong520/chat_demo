@@ -370,7 +370,9 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
                               ),
                               child: SelectableText(
                                 message.content,
-                                style: FontStyleUtils.blackBody,
+                                style: message.isUser
+                                    ? FontStyleUtils.whiteBody
+                                    : FontStyleUtils.blackBody,
                               ),
                             ),
                           );

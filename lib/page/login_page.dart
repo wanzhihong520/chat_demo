@@ -79,6 +79,7 @@ class _LoginPageState extends State<LoginPage> {
               controller: _passwordController,
               hintText: '请输入密码',
               keyboardType: TextInputType.number,
+              obscureText: true,
             ),
           ),
           SizedBox(height: 12),

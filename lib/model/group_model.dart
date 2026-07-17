@@ -13,9 +13,11 @@ class CreateGroupResult {  final String groupId;
   });
 
   factory CreateGroupResult.fromJson(Map<String, dynamic> json) {
+    // 后端约定：groupId 与 imGroupId 相同，均为 SDK groupID
+    final id = '${json['imGroupId'] ?? json['groupId'] ?? ''}';
     return CreateGroupResult(
-      groupId: json['groupId'] ?? json['imGroupId'] ?? '',
-      imGroupId: json['imGroupId'] ?? json['groupId'] ?? '',
+      groupId: id,
+      imGroupId: id,
       name: json['name'] ?? '',
       avatarUrl: json['avatarUrl'] ?? '',
       memberCount: json['memberCount'] ?? 0,
@@ -58,9 +60,10 @@ class GroupListItemModel {
   });
 
   factory GroupListItemModel.fromJson(Map<String, dynamic> json) {
+    final id = '${json['imGroupId'] ?? json['groupId'] ?? ''}';
     return GroupListItemModel(
-      groupId: json['groupId'] ?? json['imGroupId'] ?? '',
-      imGroupId: json['imGroupId'] ?? json['groupId'] ?? '',
+      groupId: id,
+      imGroupId: id,
       name: json['name'] ?? '',
       avatarUrl: json['avatarUrl'] ?? '',
       role: json['role'] ?? '',
@@ -139,9 +142,10 @@ class GroupDetailModel {
 
   factory GroupDetailModel.fromJson(Map<String, dynamic> json) {
     final items = json['members'] as List? ?? [];
+    final id = '${json['imGroupId'] ?? json['groupId'] ?? ''}';
     return GroupDetailModel(
-      groupId: json['groupId'] ?? '',
-      imGroupId: json['imGroupId'] ?? '',
+      groupId: id,
+      imGroupId: id,
       name: json['name'] ?? '',
       avatarUrl: json['avatarUrl'] ?? '',
       ownerUserId: json['ownerUserId']?.toString() ?? '',

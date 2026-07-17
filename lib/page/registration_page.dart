@@ -93,6 +93,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               controller: _passwordController,
               hintText: '请输入密码',
               keyboardType: TextInputType.number,
+              obscureText: true,
             ),
           ),
           SizedBox(height: 12),
