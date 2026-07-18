@@ -25,10 +25,10 @@ class _NewFriendPageState extends State<NewFriendPage> {
     );
     if (!mounted) return;
     if (response.statusCode == 200) {
-      final list = List<FriendRequestModel>.from(
-        ChatUtil.friendRequestListNotifier.value,
-      )..removeWhere((e) => e.requestId == item.requestId);
-      ChatUtil.friendRequestListNotifier.value = list;
+      final contact = context.read<ContactProvider>();
+      final list = List<FriendRequestModel>.from(contact.friendRequests)
+        ..removeWhere((e) => e.requestId == item.requestId);
+      contact.setFriendRequests(list);
       showToast('已同意');
       await ChatUtil.fetchFriendList();
       await ChatUtil.fetchChatList();
@@ -50,9 +50,9 @@ class _NewFriendPageState extends State<NewFriendPage> {
           ),
         ],
       ),
-      body: ValueListenableBuilder<List<FriendRequestModel>>(
-        valueListenable: ChatUtil.friendRequestListNotifier,
-        builder: (_, requests, _) {
+      body: Consumer<ContactProvider>(
+        builder: (_, contact, _) {
+          final requests = contact.friendRequests;
           if (requests.isEmpty) {
             return Center(
               child: Text('暂无好友申请', style: FontStyleUtils.blackBody),

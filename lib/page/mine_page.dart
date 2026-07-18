@@ -30,8 +30,9 @@ class _MinePageState extends State<MinePage> {
 
   @override
   Widget build(BuildContext context) {
+    final me = context.watch<AuthProvider>().meModel;
     return Scaffold(
-      body: UserPro.meModel != null
+      body: me != null
           ? ListView(
               padding: EdgeInsets.zero,
               children: [
@@ -46,7 +47,7 @@ class _MinePageState extends State<MinePage> {
                     child: Row(
                       children: [
                         PortraitUtil(
-                          url: UserPro.meModel!.avatarUrl,
+                          url: me.avatarUrl,
                           width: 64,
                           height: 64,
                         ),
@@ -56,11 +57,11 @@ class _MinePageState extends State<MinePage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              UserPro.meModel!.nickname,
+                              me.nickname,
                               style: FontStyleUtils.blackBoldTitle,
                             ),
                             Text(
-                              "账号：${UserPro.meModel!.username}",
+                              "账号：${me.username}",
                               style: FontStyleUtils.blackBody,
                             ),
                           ],

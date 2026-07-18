@@ -31,22 +31,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   void initState() {
     super.initState();
     _prepareFriendList();
-    ChatUtil.friendListNotifier.addListener(_onFriendListChanged);
-  }
-
-  @override
-  void dispose() {
-    ChatUtil.friendListNotifier.removeListener(_onFriendListChanged);
-    super.dispose();
-  }
-
-  void _onFriendListChanged() {
-    _prepareFriendList();
-    if (mounted) setState(() {});
   }
 
   void _prepareFriendList() {
-    _friendList = UserPro.friendList
+    _friendList = AppProviders.contact.friendList
         .where((f) => !widget.excludeImUserIds.contains(f.imUserId))
         .map((f) {
       final tag = f.tag.isNotEmpty ? f.tag : FriendModel.tagFromName(f.name);

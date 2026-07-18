@@ -42,12 +42,9 @@ class SettingsPage extends StatelessWidget {
     }
     final sp = await SPUtil.getInstance();
     await sp.clear();
-    UserPro.token = '';
-    UserPro.userId = '';
-    UserPro.userSig = '';
-    UserPro.meModel = null;
-    UserPro.chatList = [];
-    UserPro.friendList = [];
+    AppProviders.auth.clear();
+    AppProviders.chat.clear();
+    AppProviders.contact.clear();
     if (context.mounted) {
       jumpAndRemovePage(context, GuidePage());
     }

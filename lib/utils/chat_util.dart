@@ -13,20 +13,6 @@ import 'package:tencent_cloud_chat_sdk/models/v2_tim_group_member_info.dart';
 import 'package:video_compress/video_compress.dart';
 
 class ChatUtil {
-  static final chatListNotifier = ValueNotifier<List<ChatModel>>([]);
-  static final friendListNotifier = ValueNotifier<List<FriendModel>>([]);
-  static final friendRequestListNotifier =
-      ValueNotifier<List<FriendRequestModel>>([]);
-  static final friendRequestUnreadNotifier = ValueNotifier<int>(0);
-  static final notificationListNotifier =
-      ValueNotifier<List<NotificationModel>>([]);
-  static final notificationUnreadNotifier = ValueNotifier<int>(0);
-
-  /// 通讯录 Tab 总未读：好友申请 + 通知
-  static final addressUnreadNotifier = ValueNotifier<int>(0);
-  static final unreadCountNotifier = ValueNotifier<int>(0);
-  static final conversationUnreadNotifier = ValueNotifier<Map<String, int>>({});
-
   static V2TimAdvancedMsgListener? _msgListener;
   static V2TimConversationListener? _conversationListener;
   static V2TimGroupListener? _groupListener;
@@ -38,11 +24,6 @@ class ChatUtil {
 
   /// 邀请/退群 tips 可能已写入 IM，通知当前群聊页重拉历史
   static void Function(String imGroupId)? onGroupHistoryNeedRefresh;
-
-  static void _refreshAddressUnread() {
-    addressUnreadNotifier.value =
-        friendRequestUnreadNotifier.value + notificationUnreadNotifier.value;
-  }
 
   /// 拉取会话列表并更新本地
   static Future<List<ChatModel>> fetchChatList() async {
@@ -58,7 +39,6 @@ class ChatUtil {
       body['data'] as Map<String, dynamic>,
     ).list;
     await StorageManage.setChatList(list);
-    chatListNotifier.value = list;
     await fetchConversationUnread(list);
     return list;
   }
@@ -76,22 +56,20 @@ class ChatUtil {
   }
 
   static int unreadForChat(ChatModel chat) {
-    final convId = conversationIdFor(chat);
-    if (convId == null) return 0;
-    return conversationUnreadNotifier.value[convId] ?? 0;
+    return AppProviders.chat.unreadOf(conversationIdFor(chat));
   }
 
   static void _updateUnreadMapFromConversations(
     List<V2TimConversation> conversations,
   ) {
-    final map = Map<String, int>.from(conversationUnreadNotifier.value);
+    final map = Map<String, int>.from(AppProviders.chat.conversationUnread);
     for (final conv in conversations) {
       final id = conv.conversationID;
       if (id.isNotEmpty) {
         map[id] = conv.unreadCount ?? 0;
       }
     }
-    conversationUnreadNotifier.value = map;
+    AppProviders.chat.setConversationUnread(map);
   }
 
   static Future<void> fetchConversationUnread(List<ChatModel> chats) async {
@@ -137,9 +115,7 @@ class ChatUtil {
     await TencentImSDKPlugin.v2TIMManager
         .getConversationManager()
         .deleteConversation(conversationID: conversationID);
-    final map = Map<String, int>.from(conversationUnreadNotifier.value);
-    map.remove(conversationID);
-    conversationUnreadNotifier.value = map;
+    AppProviders.chat.removeConversationUnread(conversationID);
     await fetchTotalUnreadCount();
   }
 
@@ -157,7 +133,6 @@ class ChatUtil {
       body['data'] as Map<String, dynamic>,
     ).list;
     await StorageManage.setFriendList(list);
-    friendListNotifier.value = list;
     return list;
   }
 
@@ -170,17 +145,15 @@ class ChatUtil {
     final model = FriendRequestListModel.fromJson(
       body['data'] as Map<String, dynamic>,
     );
-    friendRequestListNotifier.value = model.list;
-    friendRequestUnreadNotifier.value = model.unreadCount;
-    _refreshAddressUnread();
+    AppProviders.contact.setFriendRequests(model.list);
+    AppProviders.contact.setFriendRequestUnread(model.unreadCount);
   }
 
   /// 标记好友申请已读
   static Future<void> markFriendRequestsRead() async {
     final res = await Api().post('/api/friends/requests/read');
     if (res.statusCode == 200) {
-      friendRequestUnreadNotifier.value = 0;
-      _refreshAddressUnread();
+      AppProviders.contact.setFriendRequestUnread(0);
     }
   }
 
@@ -193,17 +166,15 @@ class ChatUtil {
     final model = NotificationListModel.fromJson(
       body['data'] as Map<String, dynamic>,
     );
-    notificationListNotifier.value = model.list;
-    notificationUnreadNotifier.value = model.unreadCount;
-    _refreshAddressUnread();
+    AppProviders.contact.setNotifications(model.list);
+    AppProviders.contact.setNotificationUnread(model.unreadCount);
   }
 
   /// 标记通知已读
   static Future<void> markNotificationsRead() async {
     final res = await Api().post('/api/notifications/read');
     if (res.statusCode == 200) {
-      notificationUnreadNotifier.value = 0;
-      _refreshAddressUnread();
+      AppProviders.contact.setNotificationUnread(0);
     }
   }
 
@@ -1001,7 +972,7 @@ class ChatUtil {
         .getConversationManager()
         .getTotalUnreadMessageCount();
     if (res.code == 0) {
-      unreadCountNotifier.value = res.data ?? 0;
+      AppProviders.chat.setUnreadCount(res.data ?? 0);
     }
   }
 
@@ -1010,7 +981,7 @@ class ChatUtil {
 
     _conversationListener = V2TimConversationListener(
       onTotalUnreadMessageCountChanged: (totalUnreadCount) {
-        unreadCountNotifier.value = totalUnreadCount;
+        AppProviders.chat.setUnreadCount(totalUnreadCount);
       },
       onConversationChanged: _updateUnreadMapFromConversations,
       onNewConversation: _updateUnreadMapFromConversations,
@@ -1028,8 +999,8 @@ class ChatUtil {
         .getConversationManager()
         .removeConversationListener(listener: _conversationListener!);
     _conversationListener = null;
-    unreadCountNotifier.value = 0;
-    conversationUnreadNotifier.value = {};
+    AppProviders.chat.setUnreadCount(0);
+    AppProviders.chat.setConversationUnread({});
   }
 
   static Future<void> deleteMessage() async {}

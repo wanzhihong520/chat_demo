@@ -1,41 +1,16 @@
 import 'package:azlistview/azlistview.dart';
 import 'package:chat_demo/import.dart';
 
-class AddressPage extends StatefulWidget {
+class AddressPage extends StatelessWidget {
   const AddressPage({super.key});
 
-  @override
-  State<AddressPage> createState() => _AddressPageState();
-}
-
-class _AddressPageState extends State<AddressPage> {
   static const String _newFriendName = '新的朋友';
   static const String _groupChatName = '群聊';
   static const String _notificationName = '通知中心';
   static const String _topTag = '↑';
 
-  List<FriendModel> _friendList = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _prepareFriendList();
-    ChatUtil.friendListNotifier.addListener(_onFriendListChanged);
-  }
-
-  @override
-  void dispose() {
-    ChatUtil.friendListNotifier.removeListener(_onFriendListChanged);
-    super.dispose();
-  }
-
-  void _onFriendListChanged() {
-    _prepareFriendList();
-    if (mounted) setState(() {});
-  }
-
-  void _prepareFriendList() {
-    _friendList = UserPro.friendList.map((f) {
+  List<FriendModel> _prepareFriendList(List<FriendModel> source) {
+    final list = source.map((f) {
       final tag = f.tag.isNotEmpty ? f.tag : FriendModel.tagFromName(f.name);
       if (tag == f.tag) return f;
       return FriendModel(
@@ -46,9 +21,9 @@ class _AddressPageState extends State<AddressPage> {
         tag: tag,
       );
     }).toList();
-    SuspensionUtil.sortListBySuspensionTag(_friendList);
-    SuspensionUtil.setShowSuspensionStatus(_friendList);
-    _friendList.insertAll(0, [
+    SuspensionUtil.sortListBySuspensionTag(list);
+    SuspensionUtil.setShowSuspensionStatus(list);
+    list.insertAll(0, [
       FriendModel(
         imUserId: '',
         name: _newFriendName,
@@ -71,33 +46,20 @@ class _AddressPageState extends State<AddressPage> {
         tag: _topTag,
       ),
     ]);
+    return list;
   }
 
-  Widget _buildItem(FriendModel item) {
+  Widget _buildItem(BuildContext context, FriendModel item, ContactProvider contact) {
     if (item.name == _newFriendName) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ValueListenableBuilder<int>(
-            valueListenable: ChatUtil.friendRequestUnreadNotifier,
-            builder: (_, unread, _) {
-              return ChatItemUtil(
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => NewFriendPage()),
-                  );
-                  if (mounted) {
-                    _prepareFriendList();
-                    setState(() {});
-                  }
-                },
-                name: _newFriendName,
-                asset: 'assets/images/add_friend.svg',
-                boxColor: Colors.orange,
-                unreadCount: unread,
-              );
-            },
+          ChatItemUtil(
+            onTap: () => jumpPage(context, NewFriendPage()),
+            name: _newFriendName,
+            asset: 'assets/images/add_friend.svg',
+            boxColor: Colors.orange,
+            unreadCount: contact.friendRequestUnread,
           ),
           Divider(height: 1, color: Colors.grey[200]),
         ],
@@ -121,17 +83,12 @@ class _AddressPageState extends State<AddressPage> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ValueListenableBuilder<int>(
-            valueListenable: ChatUtil.notificationUnreadNotifier,
-            builder: (_, unread, _) {
-              return ChatItemUtil(
-                name: _notificationName,
-                asset: 'assets/images/chat_history.svg',
-                boxColor: Colors.blue,
-                unreadCount: unread,
-                onTap: () => jumpPage(context, NotificationCenterPage()),
-              );
-            },
+          ChatItemUtil(
+            name: _notificationName,
+            asset: 'assets/images/chat_history.svg',
+            boxColor: Colors.blue,
+            unreadCount: contact.notificationUnread,
+            onTap: () => jumpPage(context, NotificationCenterPage()),
           ),
           Divider(height: 1, color: Colors.grey[200]),
         ],
@@ -206,28 +163,34 @@ class _AddressPageState extends State<AddressPage> {
           ),
         ],
       ),
-      body: AzListView(
-        data: _friendList,
-        itemCount: _friendList.length,
-        indexBarData: [_topTag, ...kIndexBarData],
-        susItemHeight: 32,
-        susItemBuilder: (context, index) {
-          if (_friendList[index].getSuspensionTag() == _topTag) {
-            return Container();
-          }
-          return Container(
-            height: 32,
-            width: MediaQuery.of(context).size.width,
-            padding: EdgeInsets.only(left: 16),
-            color: Color.fromRGBO(230, 230, 230, 1),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              _friendList[index].getSuspensionTag(),
-              style: FontStyleUtils.blackBody,
-            ),
+      body: Consumer<ContactProvider>(
+        builder: (context, contact, _) {
+          final friendList = _prepareFriendList(contact.friendList);
+          return AzListView(
+            data: friendList,
+            itemCount: friendList.length,
+            indexBarData: [_topTag, ...kIndexBarData],
+            susItemHeight: 32,
+            susItemBuilder: (context, index) {
+              if (friendList[index].getSuspensionTag() == _topTag) {
+                return Container();
+              }
+              return Container(
+                height: 32,
+                width: MediaQuery.of(context).size.width,
+                padding: EdgeInsets.only(left: 16),
+                color: Color.fromRGBO(230, 230, 230, 1),
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  friendList[index].getSuspensionTag(),
+                  style: FontStyleUtils.blackBody,
+                ),
+              );
+            },
+            itemBuilder: (context, index) =>
+                _buildItem(context, friendList[index], contact),
           );
         },
-        itemBuilder: (context, index) => _buildItem(_friendList[index]),
       ),
     );
   }

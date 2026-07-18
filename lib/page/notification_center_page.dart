@@ -27,9 +27,9 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
         title: Text('通知中心', style: FontStyleUtils.blackTitle),
         shape: Border(),
       ),
-      body: ValueListenableBuilder<List<NotificationModel>>(
-        valueListenable: ChatUtil.notificationListNotifier,
-        builder: (_, list, _) {
+      body: Consumer<ContactProvider>(
+        builder: (_, contact, _) {
+          final list = contact.notifications;
           if (list.isEmpty) {
             return Center(
               child: Text('暂无通知', style: FontStyleUtils.blackBody),

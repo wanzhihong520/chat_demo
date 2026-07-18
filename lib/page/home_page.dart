@@ -1,13 +1,8 @@
 import 'package:chat_demo/import.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,58 +40,51 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: ValueListenableBuilder<Map<String, int>>(
-        valueListenable: ChatUtil.conversationUnreadNotifier,
-        builder: (_, _, _) {
-          return ValueListenableBuilder<List<ChatModel>>(
-            valueListenable: ChatUtil.chatListNotifier,
-            builder: (_, list, _) {
-              final chatList = list.isNotEmpty ? list : UserPro.chatList;
-              if (chatList.isEmpty) {
-                return Center(
-                  child: Text('暂无会话', style: FontStyleUtils.blackBody),
-                );
-              }
-              return ListView.separated(
-                separatorBuilder: (context, index) =>
-                    Divider(height: 0.5, color: Colors.grey[300]),
-                itemCount: chatList.length,
-                itemBuilder: (context, index) {
-                  final chat = chatList[index];
-                  return ChatItemUtil(
-                    name: chat.name,
-                    description: chat.description,
-                    avatarUrl: chat.avatarUrl,
-                    timeText: chat.timeText,
-                    isAi: chat.isAi,
-                    unreadCount: ChatUtil.unreadForChat(chat),
-                    onTap: () {
-                      if (chat.isAi) {
-                        jumpPage(context, AichatDetailPage(aiId: chat.aiId));
-                      } else if (chat.isGroup) {
-                        final gid =
-                            chat.imGroupId ?? chat.groupId ?? chat.id;
-                        jumpPage(
-                          context,
-                          ChatDetailPage(
-                            groupId: gid,
-                            imGroupId: gid,
-                            title: chat.name,
-                            avatarUrl: chat.avatarUrl,
-                          ),
-                        );
-                      } else {
-                        jumpPage(
-                          context,
-                          ChatDetailPage(
-                            receiver: chat.imUserId ?? chat.id,
-                            title: chat.name,
-                            avatarUrl: chat.avatarUrl,
-                          ),
-                        );
-                      }
-                    },
-                  );
+      body: Consumer<ChatProvider>(
+        builder: (_, chat, _) {
+          final chatList = chat.chatList;
+          if (chatList.isEmpty) {
+            return Center(
+              child: Text('暂无会话', style: FontStyleUtils.blackBody),
+            );
+          }
+          return ListView.separated(
+            separatorBuilder: (context, index) =>
+                Divider(height: 0.5, color: Colors.grey[300]),
+            itemCount: chatList.length,
+            itemBuilder: (context, index) {
+              final item = chatList[index];
+              return ChatItemUtil(
+                name: item.name,
+                description: item.description,
+                avatarUrl: item.avatarUrl,
+                timeText: item.timeText,
+                isAi: item.isAi,
+                unreadCount: ChatUtil.unreadForChat(item),
+                onTap: () {
+                  if (item.isAi) {
+                    jumpPage(context, AichatDetailPage(aiId: item.aiId));
+                  } else if (item.isGroup) {
+                    final gid = item.imGroupId ?? item.groupId ?? item.id;
+                    jumpPage(
+                      context,
+                      ChatDetailPage(
+                        groupId: gid,
+                        imGroupId: gid,
+                        title: item.name,
+                        avatarUrl: item.avatarUrl,
+                      ),
+                    );
+                  } else {
+                    jumpPage(
+                      context,
+                      ChatDetailPage(
+                        receiver: item.imUserId ?? item.id,
+                        title: item.name,
+                        avatarUrl: item.avatarUrl,
+                      ),
+                    );
+                  }
                 },
               );
             },
