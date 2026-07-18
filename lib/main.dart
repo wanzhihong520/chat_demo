@@ -2,12 +2,13 @@ import 'package:chat_demo/import.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SPUtil.init();
 
   final auth = AuthProvider();
   final chat = ChatProvider();
   final contact = ContactProvider();
   AppProviders.bind(auth: auth, chat: chat, contact: contact);
+  
+  await SPUtil.init();
 
   runApp(
     MultiProvider(
