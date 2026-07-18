@@ -2,15 +2,19 @@ import 'package:chat_demo/import.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await SPUtil.init();
+
+  final auth = AuthProvider();
+  final chat = ChatProvider();
+  final contact = ContactProvider();
+  AppProviders.bind(auth: auth, chat: chat, contact: contact);
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => AuthProvider()),
-        ChangeNotifierProvider(create: (context) => ChatProvider()),
-        ChangeNotifierProvider(create: (context) => ContactProvider()),
+        ChangeNotifierProvider.value(value: auth),
+        ChangeNotifierProvider.value(value: chat),
+        ChangeNotifierProvider.value(value: contact),
       ],
       child: const MyApp(),
     ),
