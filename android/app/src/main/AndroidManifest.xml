@@ -34,6 +34,9 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+         <meta-data
+            android:name="TencentMapSDK"
+            android:value="W2VBZ-ZZFK3-KIG3W-RFSBC-HQH4S-IYBCJ"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

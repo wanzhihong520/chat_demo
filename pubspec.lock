@@ -525,6 +525,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.4.16"
+  latlong2:
+    dependency: transitive
+    description:
+      name: latlong2
+      sha256: "98227922caf49e6056f91b6c56945ea1c7b166f28ffcd5fb8e72fc0b453cc8fe"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.9.1"
   leak_tracker:
     dependency: transitive
     description:
@@ -970,6 +978,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.4"
+  stream_transform:
+    dependency: transitive
+    description:
+      name: stream_transform
+      sha256: ad47125e588cfd37a9a7f86c7d6356dde8dfe89d071d293f80ca9e9273a33871
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "2.1.1"
   string_scanner:
     dependency: transitive
     description:
@@ -994,6 +1010,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "9.0.7652+1"
+  tencent_map_flutter:
+    dependency: "direct main"
+    description:
+      name: tencent_map_flutter
+      sha256: af64c07c1dae8a9eb094e22fcf6f1925fa85ece706ff26b8d712662364709329
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.1.0"
   term_glyph:
     dependency: transitive
     description:

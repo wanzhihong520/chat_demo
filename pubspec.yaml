@@ -34,28 +34,51 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  # 腾讯云IM
   tencent_cloud_chat_sdk: ^9.0.7652+1
+  # 网络请求
   dio: ^5.9.2
+  # 日志打印
   pretty_dio_logger: ^1.4.0
+  # 提示框
   oktoast: ^3.4.0
+  # 本地存储
   shared_preferences: ^2.5.5
+  # 状态管理
   provider: ^6.1.5+1
+  # svg图标
   flutter_svg: ^2.3.0
+  # 图片选择器
   image_picker: ^1.2.3
+  # 通讯录
   azlistview: ^2.0.0
+  # 汉字转拼音
   lpinyin: ^2.0.3
+  # 微信图片选择器
   wechat_assets_picker: ^10.1.2
+  # 本地化
   flutter_localizations:
     sdk: flutter  
+  # 图片压缩
   flutter_image_compress: ^2.4.0
+  # 图片裁剪
   image_cropper: ^12.2.1
+  # 录音
   record: ^6.2.1
+  # 提供文件路径
   path_provider: ^2.1.5
+  # 音频播放
   just_audio: ^0.10.6
+  # 视频播放
   video_player: ^2.11.1
+  # 图片查看器
   photo_view: ^0.15.0
+  # 视频压缩
   video_compress: ^3.1.4
+  # lottie动画
   lottie: ^3.3.3
+  # 腾讯地图
+  tencent_map_flutter: ^0.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
