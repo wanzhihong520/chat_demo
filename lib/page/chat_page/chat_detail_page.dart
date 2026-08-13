@@ -106,8 +106,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       if (!widget.isGroup) return;
       final gid =
           '${data['imGroupId'] ?? data['groupId'] ?? data['groupID'] ?? ''}';
-      if (gid.isEmpty ||
-          (gid != widget._imGroupId && gid != widget.groupId)) {
+      if (gid.isEmpty || (gid != widget._imGroupId && gid != widget.groupId)) {
         return;
       }
       _exitInvalidSession('群聊已解散');
@@ -231,10 +230,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _onMessageSent(message);
   }
 
-  Future<void> _pickFromCamera() async {
+  Future<void> _pickFromCamera({bool isVideo = false}) async {
     final message = await ChatUtil.pickFromCamera(
       receiver: widget.isGroup ? null : widget.receiver,
       groupID: widget.isGroup ? widget._imGroupId : null,
+      isVideo: isVideo,
     );
     if (message != null) setState(() => _isMore = false);
     _onMessageSent(message);
@@ -363,10 +363,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       appBar: AppBar(
         title: Text(_appBarTitle),
         actions: [
-          IconButton(
-            onPressed: _openChatInfo,
-            icon: Icon(Icons.more_horiz),
-          ),
+          IconButton(onPressed: _openChatInfo, icon: Icon(Icons.more_horiz)),
         ],
       ),
       body: Stack(
@@ -431,9 +428,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                               }
                               if (index == 1) {
                                 return _buildMoreItem(
-                                  icon: 'assets/images/video.svg',
+                                  icon: 'assets/images/shoot.svg',
                                   text: '拍摄',
                                 ).withOnTap(_pickFromCamera);
+                              }
+                              if (index == 2) {
+                                return _buildMoreItem(
+                                  icon: 'assets/images/video.svg',
+                                  text: '录像',
+                                ).withOnTap(
+                                  () => _pickFromCamera(isVideo: true),
+                                );
                               }
                               return SizedBox.shrink();
                             },

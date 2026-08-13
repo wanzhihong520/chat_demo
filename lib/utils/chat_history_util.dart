@@ -49,7 +49,8 @@ class _SoundBubble extends StatelessWidget {
     return url.startsWith('http') ? url : BASE_URL + url;
   }
 
-  String get _msgId => message.msgID ?? message.id ?? message.timestamp.toString();
+  String get _msgId =>
+      message.msgID ?? message.id ?? message.timestamp.toString();
 
   @override
   Widget build(BuildContext context) {
@@ -126,17 +127,13 @@ class _VideoBubbleState extends State<_VideoBubble> {
       elem?.snapshotPath,
       elem?.snapshotUrl,
     ]);
-    var play = _pick([
-      elem?.localVideoUrl,
-      elem?.videoPath,
-      elem?.videoUrl,
-    ]);
+    var play = _pick([elem?.localVideoUrl, elem?.videoPath, elem?.videoUrl]);
 
     if (mounted) {
       setState(() {
         _coverUrl = cover;
         _playUrl = play;
-      }); 
+      });
     }
     if (cover.isNotEmpty && play.isNotEmpty) return;
     if (!mounted) return;
@@ -339,9 +336,7 @@ class ChatHistoryUtil extends StatelessWidget {
   Widget _tipsText(String text) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Center(
-        child: Text(text, style: FontStyleUtils.graySmallBody),
-      ),
+      child: Center(child: Text(text, style: FontStyleUtils.graySmallBody)),
     );
   }
 

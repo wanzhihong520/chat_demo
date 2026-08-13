@@ -448,9 +448,13 @@ class ChatUtil {
   static Future<V2TimMessage?> pickFromCamera({
     String? receiver,
     String? groupID,
+    bool isVideo = false,
   }) async {
-    final file = await ImagePickerUtil.openCamera();
+    final file = await ImagePickerUtil.openCamera(isVideo: isVideo);
     if (file == null) return null;
+    if (isVideo) {
+      return sendVideo(file.path, receiver: receiver, groupID: groupID);
+    }
     return sendImage(file.path, receiver: receiver, groupID: groupID);
   }
 

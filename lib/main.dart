@@ -7,7 +7,7 @@ void main() async {
   final chat = ChatProvider();
   final contact = ContactProvider();
   AppProviders.bind(auth: auth, chat: chat, contact: contact);
-  
+
   await SPUtil.init();
 
   runApp(
@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
           ),
           textSelectionTheme: TextSelectionThemeData(
             cursorColor: Colors.green,
-            selectionColor: Colors.green.withValues(alpha: 0.2),
+            selectionColor: Colors.black.withValues(alpha: 0.15),
             selectionHandleColor: Colors.green,
           ),
           splashFactory: NoSplash.splashFactory,
