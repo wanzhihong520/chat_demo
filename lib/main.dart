@@ -30,6 +30,7 @@ class MyApp extends StatelessWidget {
     return OKToast(
       position: ToastPosition.bottom,
       child: MaterialApp(
+        navigatorObservers: [],
         locale: Locale('zh', 'CN'),
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
         supportedLocales: [Locale('zh', 'CN'), Locale('en', 'US')],

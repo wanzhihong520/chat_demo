@@ -190,7 +190,6 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
             createdAt: last.createdAt,
           );
         });
-        _scrollToBottom();
       } else if (type == 'done') {
         final doneData = event['data'];
         if (doneData is Map) {
