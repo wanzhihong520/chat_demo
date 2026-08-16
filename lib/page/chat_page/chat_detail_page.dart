@@ -374,6 +374,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               child: Column(
                 children: [
                   ListView.builder(
+                    reverse: true,
                     controller: _scrollController,
                     itemCount: _messageList.length,
                     itemBuilder: (context, index) {
