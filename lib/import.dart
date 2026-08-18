@@ -85,4 +85,6 @@ export 'package:tencent_cloud_chat_sdk/models/v2_tim_message_receipt.dart';
 export 'package:photo_view/photo_view.dart';
 export 'package:record/record.dart';
 export 'package:video_player/video_player.dart';
+export 'package:chat_demo/page/chat_page/location_page.dart';
+export 'package:geolocator/geolocator.dart';
 export 'package:lottie/lottie.dart';

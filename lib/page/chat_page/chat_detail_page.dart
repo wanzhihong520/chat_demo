@@ -68,6 +68,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     ChatUtil.onNewMessage = _handleNewMessage;
     ChatUtil.onSessionInvalidated = _onSessionInvalidated;
     ChatUtil.onGroupHistoryNeedRefresh = _onGroupHistoryNeedRefresh;
+    _scrollToBottom();
   }
 
   void _onGroupHistoryNeedRefresh(String imGroupId) {
@@ -374,7 +375,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               child: Column(
                 children: [
                   ListView.builder(
-                    reverse: true,
                     controller: _scrollController,
                     itemCount: _messageList.length,
                     itemBuilder: (context, index) {
@@ -440,6 +440,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                 ).withOnTap(
                                   () => _pickFromCamera(isVideo: true),
                                 );
+                              }
+                              if (index == 3) {
+                                return _buildMoreItem(
+                                  icon: 'assets/images/location.svg',
+                                  text: '位置',
+                                ).withOnTap(() => jumpPage(context, LocationPage()));
                               }
                               return SizedBox.shrink();
                             },

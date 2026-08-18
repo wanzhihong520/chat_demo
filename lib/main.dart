@@ -6,7 +6,13 @@ void main() async {
   final auth = AuthProvider();
   final chat = ChatProvider();
   final contact = ContactProvider();
-  AppProviders.bind(auth: auth, chat: chat, contact: contact);
+  final location = LocationProvider();
+  AppProviders.bind(
+    auth: auth,
+    chat: chat,
+    contact: contact,
+    location: location,
+  );
 
   await SPUtil.init();
 
@@ -16,6 +22,7 @@ void main() async {
         ChangeNotifierProvider.value(value: auth),
         ChangeNotifierProvider.value(value: chat),
         ChangeNotifierProvider.value(value: contact),
+        ChangeNotifierProvider.value(value: location),
       ],
       child: const MyApp(),
     ),

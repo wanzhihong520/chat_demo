@@ -1,3 +1,4 @@
+import 'package:chat_demo/import.dart';
 import 'package:chat_demo/utils/app_provider.dart';
 import 'package:chat_demo/model/chat_list_model.dart';
 import 'package:chat_demo/model/friend_list_model.dart';
@@ -24,4 +25,9 @@ class UserPro {
   static List<FriendModel> get friendList => AppProviders.contact.friendList;
   static set friendList(List<FriendModel> value) =>
       AppProviders.contact.setFriendList(value);
+
+  static Position? get position => AppProviders.location.position;
+
+  static set position(Position? value) =>
+      AppProviders.location.setPosition(value!);
 }

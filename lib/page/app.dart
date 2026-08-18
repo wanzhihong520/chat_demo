@@ -1,4 +1,5 @@
 import 'package:chat_demo/import.dart';
+import 'package:tencent_map_flutter/tencent_map_flutter.dart' hide Position;
 
 class AppPage extends StatefulWidget {
   const AppPage({super.key});
@@ -31,6 +32,44 @@ class _AppPageState extends State<AppPage> {
     await ChatUtil.fetchFriendList();
     await ChatUtil.fetchFriendRequests();
     await ChatUtil.fetchNotifications();
+    TencentMap.init(agreePrivacy: true);
+    UserPro.position = await _determinePosition();
+  }
+
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('定位服务未开启');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('定位权限未开启');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('定位权限永久拒绝，无法请求权限');
+    }
+
+    // 先获取缓存位置
+    Position? lastPosition = await Geolocator.getLastKnownPosition();
+
+    if (lastPosition != null) {
+      UserPro.position = lastPosition;
+    }
+
+    // 没有缓存，再请求实时定位
+    return await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.medium,
+      ),
+    );
   }
 
   Future<void> _getMeData() async {
@@ -41,11 +80,7 @@ class _AppPageState extends State<AppPage> {
     }
   }
 
-  Widget _buildTabIcon(
-    String asset,
-    Color color, {
-    int unreadCount = 0,
-  }) {
+  Widget _buildTabIcon(String asset, Color color, {int unreadCount = 0}) {
     final icon = SvgPicture.asset(
       asset,
       colorFilter: ColorFilter.mode(color, BlendMode.srcIn),

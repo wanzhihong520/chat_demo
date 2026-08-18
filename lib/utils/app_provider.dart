@@ -1,3 +1,4 @@
+import 'package:chat_demo/import.dart';
 import 'package:chat_demo/model/chat_list_model.dart';
 import 'package:chat_demo/model/friend_list_model.dart';
 import 'package:chat_demo/model/friend_request_model.dart';
@@ -10,15 +11,18 @@ class AppProviders {
   static late AuthProvider auth;
   static late ChatProvider chat;
   static late ContactProvider contact;
+  static late LocationProvider location;
 
   static void bind({
     required AuthProvider auth,
     required ChatProvider chat,
     required ContactProvider contact,
+    required LocationProvider location,
   }) {
     AppProviders.auth = auth;
     AppProviders.chat = chat;
     AppProviders.contact = contact;
+    AppProviders.location = location;
   }
 }
 
@@ -147,6 +151,19 @@ class ContactProvider extends ChangeNotifier {
     friendRequestUnread = 0;
     notifications = [];
     notificationUnread = 0;
+    notifyListeners();
+  }
+}
+
+/// 定位位置
+class LocationProvider extends ChangeNotifier {
+  Position? _position;
+
+  Position? get position => _position;
+
+  void setPosition(Position position) {
+    _position = position;
+
     notifyListeners();
   }
 }

@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_windows
+  geolocator_windows
   record_windows
   tencent_cloud_chat_sdk
 )
