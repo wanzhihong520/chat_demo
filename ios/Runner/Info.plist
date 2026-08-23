@@ -22,6 +22,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>TencentMapSDK</key>
+	<string>W2VBZ-ZZFK3-KIG3W-RFSBC-HQH4S-IYBCJ</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>用于选择并发送当前位置</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -45,5 +49,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-</dict>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>qqmap</string>
+		<string>baidumap</string>
+		<string>amapuri</string>
+	</array>
+	</dict>
 </plist>

@@ -80,9 +80,10 @@ dependencies:
   # 腾讯地图
   tencent_map_flutter: ^0.1.0
   # GPS定位
-  geolocator: ^14.0.3
   #
   latlong2: ^0.9.1
+  url_launcher: ^6.3.2
+  crypto: ^3.0.7
 dev_dependencies:
   flutter_test:
     sdk: flutter

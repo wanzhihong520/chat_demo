@@ -195,6 +195,8 @@ class ChatUtil {
         return '语音';
       case MessageElemType.V2TIM_ELEM_TYPE_FACE:
         return '表情';
+      case MessageElemType.V2TIM_ELEM_TYPE_LOCATION:
+        return '位置';
       default:
         return '';
     }
@@ -417,6 +419,35 @@ class ChatUtil {
         .getMessageManager()
         .createSoundMessage(soundPath: path, duration: duration);
     if (created.code != 0 || created.data?.id == null) return null;
+    return sendMessage(
+      id: created.data!.id!,
+      receiver: receiver,
+      groupID: groupID,
+    );
+  }
+
+  static Future<V2TimMessage?> sendLocation({
+    required String desc,
+    required double longitude,
+    required double latitude,
+    String? receiver,
+    String? groupID,
+  }) async {
+    final normalizedDesc = desc.trim();
+    if (normalizedDesc.isEmpty) return null;
+    final created = await TencentImSDKPlugin.v2TIMManager
+        .getMessageManager()
+        .createLocationMessage(
+          desc: normalizedDesc,
+          longitude: longitude,
+          latitude: latitude,
+        );
+    if (created.code != 0 || created.data?.id == null) {
+      debugPrint(
+        'createLocationMessage failed: ${created.code} ${created.desc}',
+      );
+      return null;
+    }
     return sendMessage(
       id: created.data!.id!,
       receiver: receiver,

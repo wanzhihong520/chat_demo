@@ -25,9 +25,4 @@ class UserPro {
   static List<FriendModel> get friendList => AppProviders.contact.friendList;
   static set friendList(List<FriendModel> value) =>
       AppProviders.contact.setFriendList(value);
-
-  static Position? get position => AppProviders.location.position;
-
-  static set position(Position? value) =>
-      AppProviders.location.setPosition(value!);
 }

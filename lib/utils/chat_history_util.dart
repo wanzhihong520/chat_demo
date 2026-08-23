@@ -1,5 +1,7 @@
 import 'package:chat_demo/import.dart';
 import 'package:tencent_cloud_chat_sdk/enum/image_types.dart';
+import 'package:tencent_map_flutter/tencent_map_flutter.dart';
+import 'package:latlong2/latlong.dart' as geo;
 
 class _SoundPlayHelper {
   static final player = AudioPlayer();
@@ -183,9 +185,9 @@ class _VideoBubbleState extends State<_VideoBubble> {
       );
     }
     if (_coverUrl.startsWith('http')) {
-      return Image.network(_coverUrl, fit: BoxFit.cover);
+      return Image.network(_coverUrl, fit: BoxFit.contain);
     }
-    return Image.file(File(_coverUrl), fit: BoxFit.cover);
+    return Image.file(File(_coverUrl), fit: BoxFit.contain);
   }
 
   Future<void> _openPreview(BuildContext context) async {
@@ -197,6 +199,18 @@ class _VideoBubbleState extends State<_VideoBubble> {
   @override
   Widget build(BuildContext context) {
     final duration = widget.message.videoElem?.duration ?? 0;
+    final snapshotWidth = widget.message.videoElem?.snapshotWidth ?? 0;
+    final snapshotHeight = widget.message.videoElem?.snapshotHeight ?? 0;
+    final aspectRatio = snapshotWidth > 0 && snapshotHeight > 0
+        ? snapshotWidth / snapshotHeight
+        : null;
+    final cover = aspectRatio == null
+        ? _buildCover()
+        : SizedBox(
+            width: aspectRatio >= 1 ? 240 : 240 * aspectRatio,
+            height: aspectRatio >= 1 ? 240 / aspectRatio : 240,
+            child: _buildCover(),
+          );
     final seconds = duration >= 1000 ? (duration / 1000).round() : duration;
     final m = seconds ~/ 60;
     final s = seconds % 60;
@@ -208,7 +222,7 @@ class _VideoBubbleState extends State<_VideoBubble> {
             borderRadius: BorderRadius.circular(4),
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: 240, maxHeight: 240),
-              child: _buildCover(),
+              child: cover,
             ),
           ),
           Positioned.fill(
@@ -358,8 +372,129 @@ class ChatHistoryUtil extends StatelessWidget {
         );
       case MessageElemType.V2TIM_ELEM_TYPE_FACE:
         return _faceContent();
+      case MessageElemType.V2TIM_ELEM_TYPE_LOCATION:
+        return _locationBubble(context);
       default:
         return null;
+    }
+  }
+
+  Widget _locationBubble(BuildContext context) {
+    final location = message.locationElem;
+
+    if (location == null) {
+      return const SizedBox.shrink();
+    }
+
+    final latitude = (location.latitude as num?)?.toDouble() ?? 0.0;
+    final longitude = (location.longitude as num?)?.toDouble() ?? 0.0;
+    final desc = (location.desc ?? '').trim();
+    final bubbleWidth = MediaQuery.sizeOf(context).width * 0.6;
+    return Stack(
+      children: [
+        ContainerUtils(
+          color: Colors.white,
+          radius: 4,
+          width: bubbleWidth,
+          padding: [8, 8, 8, 8],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                desc.isEmpty ? '位置' : desc,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: FontStyleUtils.blackBody,
+              ),
+              _LocationMapPreview(latitude: latitude, longitude: longitude),
+            ],
+          ),
+        ),
+        Positioned.fill(
+          child: Container(color: Colors.transparent).withOnTap(() {
+            _showMapChooser(context, latitude, longitude, desc);
+          }),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showMapChooser(
+    BuildContext context,
+    double latitude,
+    double longitude,
+    String desc,
+  ) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final item in const [
+              ('腾讯地图', 'tencent'),
+              ('百度地图', 'baidu'),
+              ('高德地图', 'amap'),
+            ]) ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(item.$1, textAlign: TextAlign.center),
+                onTap: () => Navigator.pop(context, item.$2),
+              ),
+              const Divider(height: 1, thickness: 0.5),
+            ],
+            Container(height: 12, color: Colors.grey.shade300),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('取消', textAlign: TextAlign.center),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null) return;
+    final name = Uri.encodeComponent(desc.isEmpty ? '目的地' : desc);
+    final appUrl = switch (choice) {
+      'tencent' => Uri.parse(
+        'qqmap://map/routeplan?type=drive&to=$name&tocoord=$latitude,$longitude',
+      ),
+      'baidu' => Uri.parse(
+        'baidumap://map/direction?destination=name:$name|latlng:$latitude,$longitude&mode=driving',
+      ),
+      _ => Uri.parse(
+        'amapuri://route/plan/?dlat=$latitude&dlon=$longitude&dname=$name&dev=0&t=0',
+      ),
+    };
+    final webUrl = switch (choice) {
+      'tencent' => Uri.parse(
+        'https://apis.map.qq.com/uri/v1/routeplan?type=drive&to=$name&tocoord=$latitude,$longitude',
+      ),
+      'baidu' => Uri.parse(
+        'https://api.map.baidu.com/dir?destination=$latitude,$longitude&destination_name=$name&mode=driving&output=html',
+      ),
+      _ => Uri.parse(
+        'https://uri.amap.com/navigation?to=$longitude,$latitude,$name&mode=car&coordinate=gaode',
+      ),
+    };
+    try {
+      final opened = await launchUrl(
+        appUrl,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened)
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      try {
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('无法打开地图导航')));
+        }
+      }
     }
   }
 
@@ -462,5 +597,84 @@ class ChatHistoryUtil extends StatelessWidget {
       }
     }
     return null;
+  }
+}
+
+class _LocationMapPreview extends StatefulWidget {
+  final double latitude;
+  final double longitude;
+
+  const _LocationMapPreview({required this.latitude, required this.longitude});
+
+  @override
+  State<_LocationMapPreview> createState() => _LocationMapPreviewState();
+}
+
+class _LocationMapPreviewState extends State<_LocationMapPreview> {
+  TencentMapController? _controller;
+  late final TencentMap _map;
+
+  @override
+  void initState() {
+    super.initState();
+    // TencentMap's didUpdateWidget reads a late mapId. Keep one widget
+    // instance so chat list rebuilds cannot update it before native creation.
+    _map = TencentMap(
+      androidTexture: true,
+      compassEnabled: false,
+      myLocationEnabled: false,
+      scrollGesturesEnabled: false,
+      zoomGesturesEnabled: false,
+      rotateGesturesEnabled: false,
+      skewGesturesEnabled: false,
+      onMapCreated: (controller) {
+        _controller = controller;
+        _moveToMessageLocation();
+      },
+    );
+  }
+
+  void _moveToMessageLocation() {
+    final controller = _controller;
+    if (controller == null) return;
+    controller.moveCamera(
+      CameraPosition(
+        position: geo.LatLng(widget.latitude, widget.longitude),
+        zoom: 16,
+      ),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _LocationMapPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.latitude != widget.latitude ||
+        oldWidget.longitude != widget.longitude) {
+      _moveToMessageLocation();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.pause();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 120,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // The preview is intentionally read-only; the chat bubble is not a map editor.
+          _map,
+          IgnorePointer(
+            child: Icon(Icons.location_on, color: Colors.green, size: 36),
+          ),
+        ],
+      ),
+    );
   }
 }

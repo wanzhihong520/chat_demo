@@ -68,7 +68,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     ChatUtil.onNewMessage = _handleNewMessage;
     ChatUtil.onSessionInvalidated = _onSessionInvalidated;
     ChatUtil.onGroupHistoryNeedRefresh = _onGroupHistoryNeedRefresh;
-    _scrollToBottom();
   }
 
   void _onGroupHistoryNeedRefresh(String imGroupId) {
@@ -192,6 +191,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
     if (!mounted) return;
     setState(() => _messageList = list);
+    _scrollToBottom();
   }
 
   void _onMessageSent(V2TimMessage? message) {
@@ -445,7 +445,27 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                 return _buildMoreItem(
                                   icon: 'assets/images/location.svg',
                                   text: '位置',
-                                ).withOnTap(() => jumpPage(context, LocationPage()));
+                                ).withOnTap(
+                                  () async {
+                                    final message =
+                                        await Navigator.push<V2TimMessage>(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => LocationPage(
+                                          receiver: widget.isGroup
+                                              ? null
+                                              : widget.receiver,
+                                          groupID: widget.isGroup
+                                              ? widget._imGroupId
+                                              : null,
+                                        ),
+                                      ),
+                                    );
+                                    if (!mounted) return;
+                                    setState(() => _isMore = false);
+                                    _onMessageSent(message);
+                                  },
+                                );
                               }
                               return SizedBox.shrink();
                             },

@@ -1,17 +1,17 @@
 import 'package:chat_demo/import.dart';
+import 'package:tencent_map_flutter/tencent_map_flutter.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await TencentMap.init(agreePrivacy: true);
 
   final auth = AuthProvider();
   final chat = ChatProvider();
   final contact = ContactProvider();
-  final location = LocationProvider();
   AppProviders.bind(
     auth: auth,
     chat: chat,
     contact: contact,
-    location: location,
   );
 
   await SPUtil.init();
@@ -22,7 +22,6 @@ void main() async {
         ChangeNotifierProvider.value(value: auth),
         ChangeNotifierProvider.value(value: chat),
         ChangeNotifierProvider.value(value: contact),
-        ChangeNotifierProvider.value(value: location),
       ],
       child: const MyApp(),
     ),

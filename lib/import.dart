@@ -86,5 +86,5 @@ export 'package:photo_view/photo_view.dart';
 export 'package:record/record.dart';
 export 'package:video_player/video_player.dart';
 export 'package:chat_demo/page/chat_page/location_page.dart';
-export 'package:geolocator/geolocator.dart';
 export 'package:lottie/lottie.dart';
+export 'package:url_launcher/url_launcher.dart';
