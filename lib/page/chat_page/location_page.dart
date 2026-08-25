@@ -35,6 +35,7 @@ class _LocationPageState extends State<LocationPage> {
     if (pois is! List) return const [];
     return pois.whereType<Map>().toList();
   }
+
   @override
   void initState() {
     super.initState();
@@ -63,8 +64,8 @@ class _LocationPageState extends State<LocationPage> {
           ? resultData['pois'] as List
           : const [];
       final first = pois.isNotEmpty && pois.first is Map ? pois.first : null;
-      final formatted = resultData is Map &&
-              resultData['formatted_addresses'] is Map
+      final formatted =
+          resultData is Map && resultData['formatted_addresses'] is Map
           ? resultData['formatted_addresses'] as Map
           : const {};
       final recommend = '${formatted['recommend'] ?? ''}'.trim();
@@ -73,8 +74,12 @@ class _LocationPageState extends State<LocationPage> {
           : '';
       final poiTitle = first is Map ? '${first['title'] ?? ''}'.trim() : '';
       final poiAddress = first is Map ? '${first['address'] ?? ''}'.trim() : '';
-      final desc = [recommend, address, poiTitle, poiAddress]
-          .firstWhere((value) => value.isNotEmpty, orElse: () => '');
+      final desc = [
+        recommend,
+        address,
+        poiTitle,
+        poiAddress,
+      ].firstWhere((value) => value.isNotEmpty, orElse: () => '');
       if (desc.trim().isNotEmpty) location['desc'] = desc.trim();
       if (!mounted) return;
       setState(() => response = result);
@@ -188,7 +193,12 @@ class _LocationPageState extends State<LocationPage> {
             ),
           ),
           _pois.isEmpty
-              ? Center(child: Text("正在获取地址"))
+              ? Center(
+                  child: Text(
+                    "加载中，如长时间加载，请查看位置权限是否开启。",
+                    textAlign: TextAlign.center,
+                  ),
+                )
               : ListView.separated(
                   padding: EdgeInsets.all(18),
                   itemBuilder: (context, index) {
@@ -224,9 +234,10 @@ class _LocationPageState extends State<LocationPage> {
                             response!.data['result']['pois'][index] as Map;
                         final title = '${poi['title'] ?? ''}'.trim();
                         final address = '${poi['address'] ?? ''}'.trim();
-                        location['desc'] = [title, address]
-                            .where((value) => value.isNotEmpty)
-                            .join(' ');
+                        location['desc'] = [
+                          title,
+                          address,
+                        ].where((value) => value.isNotEmpty).join(' ');
                         location['longitude'] = latLng?.longitude ?? 0.0;
                         location['latitude'] = latLng?.latitude ?? 0.0;
                       });

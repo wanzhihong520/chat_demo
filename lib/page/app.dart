@@ -1,4 +1,5 @@
 import 'package:chat_demo/import.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:tencent_map_flutter/tencent_map_flutter.dart' hide Position;
 
 class AppPage extends StatefulWidget {
@@ -32,8 +33,30 @@ class _AppPageState extends State<AppPage> {
     await ChatUtil.fetchFriendList();
     await ChatUtil.fetchFriendRequests();
     await ChatUtil.fetchNotifications();
+    await requestLocationPermission();
   }
 
+  Future requestLocationPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('位置服务已关闭。');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('位置权限被拒绝。');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('位置权限已被永久拒绝，我们无法再次请求权限。');
+    }
+  }
 
   Future<void> _getMeData() async {
     final data = await Api().get("/api/auth/me");
