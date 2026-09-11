@@ -332,9 +332,9 @@ class _AichatDetailPageState extends State<AichatDetailPage> {
           ),
         ],
       ),
-      body: Container(
-        color: Color.fromRGBO(230, 230, 230, 1),
-        child: SafeArea(
+      body: SafeArea(
+        child: Container(
+          color: Color.fromRGBO(230, 230, 230, 1),
           child: Column(
             children: [
               Expanded(

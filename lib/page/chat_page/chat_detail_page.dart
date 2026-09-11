@@ -367,11 +367,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           IconButton(onPressed: _openChatInfo, icon: Icon(Icons.more_horiz)),
         ],
       ),
-      body: Stack(
-        children: [
-          Container(
-            color: Color.fromRGBO(230, 230, 230, 1),
-            child: SafeArea(
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Container(
+              color: Color.fromRGBO(230, 230, 230, 1),
               child: Column(
                 children: [
                   ListView.builder(
@@ -445,27 +445,25 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                 return _buildMoreItem(
                                   icon: 'assets/images/location.svg',
                                   text: '位置',
-                                ).withOnTap(
-                                  () async {
-                                    final message =
-                                        await Navigator.push<V2TimMessage>(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => LocationPage(
-                                          receiver: widget.isGroup
-                                              ? null
-                                              : widget.receiver,
-                                          groupID: widget.isGroup
-                                              ? widget._imGroupId
-                                              : null,
+                                ).withOnTap(() async {
+                                  final message =
+                                      await Navigator.push<V2TimMessage>(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => LocationPage(
+                                            receiver: widget.isGroup
+                                                ? null
+                                                : widget.receiver,
+                                            groupID: widget.isGroup
+                                                ? widget._imGroupId
+                                                : null,
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                    if (!mounted) return;
-                                    setState(() => _isMore = false);
-                                    _onMessageSent(message);
-                                  },
-                                );
+                                      );
+                                  if (!mounted) return;
+                                  setState(() => _isMore = false);
+                                  _onMessageSent(message);
+                                });
                               }
                               return SizedBox.shrink();
                             },
@@ -476,9 +474,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 ],
               ),
             ),
-          ),
-          if (_isRecording) ChatVoiceRecordWidget(isCancel: _isCancel),
-        ],
+            if (_isRecording) ChatVoiceRecordWidget(isCancel: _isCancel),
+          ],
+        ),
       ),
     );
   }
