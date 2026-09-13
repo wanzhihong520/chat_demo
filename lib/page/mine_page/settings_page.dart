@@ -64,6 +64,8 @@ class SettingsPage extends StatelessWidget {
                 _row('个人资料', () => jumpPage(context, ProfilePage())),
                 Divider(height: 1, color: Colors.grey[200]),
                 _row('修改密码', () => jumpPage(context, ChangePasswordPage())),
+                Divider(height: 1, color: Colors.grey[200]),
+                _row('手机信息', () => jumpPage(context, PhoneInfoPage())),
               ],
             ),
           ),
